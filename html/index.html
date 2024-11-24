@@ -1,0 +1,11 @@
+{{ template "_header.html" }}
+
+<main>
+    {{ if . }}
+        {{ range $task := . }}
+            {{ template "_task.html" $task }}
+        {{ end }}
+    {{ end }}
+</main>
+
+{{ template "_footer.html" }}
