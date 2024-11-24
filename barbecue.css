@@ -1,0 +1,216 @@
+/* https://clrs.cc */
+
+.navy { color: #001f3f }
+.blue { color: #0074D9 }
+.aqua { color: #7FDBFF }
+.teal { color: #39CCCC }
+.purple { color: #B10DC9 }
+.fuchsia { color: #F012BE }
+.maroon { color: #85144b }
+.red { color: #FF4136 }
+.orange { color: #FF851B }
+.yellow { color: #FFDC00 }
+.olive { color: #3D9970 }
+.green { color: #2ECC40 }
+.lime { color: #01FF70 }
+.black { color: #111111 }
+.gray { color: #AAAAAA }
+.silver { color: #DDDDDD }
+.white { color: #FFFFFF }
+
+/* https://picocss.com */
+
+[data-theme="light"],
+:root:not([data-theme="dark"]) {
+  --primary: #ffb300;
+  --primary-hover: #ffa000;
+  --primary-focus: rgba(255, 179, 0, 0.125);
+  --primary-inverse: rgba(0, 0, 0, 0.75);
+}
+@media only screen and (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --primary: #ffb300;
+    --primary-hover: #ffc107;
+    --primary-focus: rgba(255, 179, 0, 0.25);
+    --primary-inverse: rgba(0, 0, 0, 0.75);
+  }
+}
+[data-theme="dark"] {
+  --primary: #ffb300;
+  --primary-hover: #ffc107;
+  --primary-focus: rgba(255, 179, 0, 0.25);
+  --primary-inverse: rgba(0, 0, 0, 0.75);
+}
+:root {
+  --form-element-active-border-color: var(--primary);
+  --form-element-focus-color: var(--primary-focus);
+  --switch-color: var(--primary-inverse);
+  --switch-checked-background-color: var(--primary);
+}
+
+:root {
+    --range-thumb-color: var(--secondary-inverse);
+    --range-thumb-hover-color: var(--secondary-inverse);
+    --range-thumb-active-color: var(--primary);
+}
+h1, h2, h3, h4, h5, h6,
+article, details, section,
+form, input[type], select, textarea {
+    margin: 0;
+}
+a, ins, del {
+    text-decoration: none;
+}
+blockquote {
+  font-style: italic;
+}
+blockquote > p {
+  display:inline;
+}
+a[role="button"] {
+    padding: calc(var(--form-element-spacing-vertical) / 2) calc(var(--form-element-spacing-horizontal) / 2);
+}
+a:hover {
+    color: var(--primary-hover);
+}
+input:hover, select:hover, textarea:hover {
+    border-color: #DDD;
+}
+input[type="submit"].primary.outline:hover, button.primary.outline:hover, a[role="button"].primary.outline:hover {
+    border-color: transparent;
+    background: var(--primary);
+    color: var(--primary-inverse);
+}
+input[type="submit"].secondary.outline:hover, button.secondary.outline:hover, a[role="button"].secondary.outline:hover {
+    border-color: transparent;
+    background: var(--secondary);
+    color: var(--secondary-inverse);
+}
+input[type="submit"].contrast.outline:hover, button.contrast.outline:hover, a[role="button"].contrast.outline:hover {
+    border-color: transparent;
+    background: var(--contrast);
+    color: var(--contrast-inverse);
+}
+input[type="submit"].error.outline, button.error.outline, a[role="button"].error.outline {
+    border-color: #FF4136;
+    color: #FF4136;
+
+}
+input[type="submit"].error.outline:hover, button.error.outline:hover, a[role="button"].error.outline:hover {
+    border-color: transparent;
+    background: #FF4136;
+    color: #DDD;
+}
+input[type="file"] {
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	position: absolute;
+	z-index: -1;
+}
+label#import {
+    display: inline-block;
+    background-color: transparent;
+    color: var(--secondary);
+    border-color: var(--secondary);
+}
+label#import:hover {
+    display: inline-block;
+    background-color: var(--secondary);
+    color: var(--contrast);
+    cursor: pointer;
+}
+label#import:after {
+    content: ' ';
+    padding-right: calc(var(--form-element-spacing-horizontal) / 4);
+}
+
+.hidden {
+    visibility: hidden;
+}
+.gone {
+    display: none;
+}
+.split {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+nav ul#index a *:before {
+    content: ' ';
+    padding-left: calc(var(--form-element-spacing-horizontal) / 4);
+}
+nav ul#index a *:hover {
+    color: var(--primary-hover);
+}
+ul#actions a.import:after {
+    content: ' ';
+    padding-right: calc(var(--form-element-spacing-horizontal) / 4);
+}
+ul#actions a.export:after {
+    content: ' ';
+    padding-right: calc(var(--form-element-spacing-horizontal) / 4);
+}
+ul#actions a.clear:after {
+    content: ' 󰧧';
+    padding-right: calc(var(--form-element-spacing-horizontal) / 4);
+}
+article header a.complete:after {
+    content: ' 󰄭';
+    padding-right: calc(var(--form-element-spacing-horizontal) / 4);
+}
+a.edit:after, a.save:after {
+    content: ' ';
+    padding-right: calc(var(--form-element-spacing-horizontal) / 4);
+}
+a.delete:after {
+    content: ' ';
+    padding-right: calc(var(--form-element-spacing-horizontal) / 4);
+}
+button#add:after {
+    content: ' ';
+    padding-right: calc(var(--form-element-spacing-horizontal) / 4);
+}
+#content #children .count:before {
+    content: '󰥪 ';
+}
+#content #children ul {
+    --icon-size: .8em;
+    --gutter: .5em;
+    padding: 0 0 0 var(--icon-size);
+}
+#content #children ul li {
+    padding-left: var(--gutter);
+}
+#content #children ul li::marker {
+    content: ' ';
+    font-size: var(--icon-size);
+}
+#content #children ul li.progress-0::marker {
+    content: ' ';
+}
+#content #children ul li.progress-100::marker {
+    content: ' ';
+}
+.container .left {
+    text-align: left;
+}
+.container .right {
+    text-align: right;
+}
+.container .footer {
+    margin: 1rem 0;
+    font-style: italic;
+}
+.container .footer .right {
+    font-size: small;
+    color: var(--secondary);
+}
+.container .footer .right i span {
+    display: none;
+}
+.container .footer .right i:after {
+    content: '♥';
+    padding-right: calc(var(--form-element-spacing-horizontal) / 4);
+}
