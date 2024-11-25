@@ -2,9 +2,26 @@
 
 <main>
     {{ if . }}
-        {{ range $task := . }}
-            {{ template "_task.html" $task }}
+        {{ range . }}
+            <article>
+                <a href="/{{ .Task.Slug }}">{{ .Task.Title }}</a>
+                {{ if .SubTasks }}
+                    {{ $done := 0 }}
+                    {{ range .SubTasks }}
+                        {{ if eq .Progress 100 }}
+                            {{ $done = len (printf "a%*s" $done "") }}
+                        {{ end }}
+                    {{ end }}
+                    ({{ $done }}/{{ len .SubTasks }})
+                {{ end }}
+                <p></p>
+                <progress value="{{ .Task.Progress }}" min="0" max="100"></progress>
+            </article>
         {{ end }}
+    {{ else }}
+        <article>
+            <progress />
+        </article>
     {{ end }}
 </main>
 

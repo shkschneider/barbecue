@@ -6,6 +6,8 @@ require github.com/labstack/echo/v4 v4.12.0
 
 require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/gosimple/slug v1.14.0 // indirect
+	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect

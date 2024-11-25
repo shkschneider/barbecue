@@ -1,18 +1,32 @@
 {{ template "_header.html" }}
 
 <main>
-    {{ if . }}
-        <section>
-            #{{ .ID }} {{ .Title }}
+    {{ if .Task }}
+        <section class="flex">
+            <a href="/{{ .Task.Slug }}">{{ .Task.Title }}</a>
+            <a href="#" onClick="document.getElementById('modal').showModal()">
+                <kbd>delete</kbd>
+            </a>
+            <dialog id="modal">
+                <article>
+                    Delete <b>{{ .Task.Title }}</b>?
+                    <footer>
+                        <button class="secondary" onClick="document.getElementById('modal').close()" autofocus>Cancel</button>
+                        <button onClick="location.href='/{{ .Task.Slug }}/-'">Confirm</button>
+                    </footer>
+                </article>
+            </dialog>
         </section>
     {{ end }}
     <section>
         <form method="post">
-          <label for="title">Title</label>
-          <input type="text" id="title" name="title" required>
-          <label for="description">Description</label>
-          <input type="text" id="description" name="description" required>
-          <input type="submit" value="+">
+          <input type="text" name="title" placeholder="Title..." value="{{ .Task.Title }}" required/>
+          <textarea name="description" placeholder="Description...">{{ .Task.Description }}</textarea>
+          {{ if .Task }}
+                <input type="submit" value="~" />
+          {{ else }}
+                <input type="submit" value="+" />
+          {{ end }}
         </form>
     </section>
 </main>
