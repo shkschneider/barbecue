@@ -21,7 +21,7 @@ type Task struct {
 	Slug 		string 	`param:"slug"`
 	Title 		string 	`form:"title"`
 	Description string 	`form:"description"`
-	Progress	uint
+	Progress	uint	`form:"progress"`
 	ParentID 	*uint
 }
 
