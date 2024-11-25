@@ -7,77 +7,105 @@ import (
 	"os"
 )
 
-var DB *gorm.DB
+var db *gorm.DB
 
-func DatabaseGet(slug string) (*Response, error) {
-	var task Task
-	result := DB.Model(&Task{}).Where(Task { Slug: slug }).First(&task)
-	var parent *Task = new(Task)
-	DB.Model(&Task{}).First(parent, task.ParentID)
-	if parent.ID == 0 { parent = nil }
-	var tasks *[]Task = new([]Task)
-	DB.Model(&Task{}).Where(Task { ParentID: &task.ID }).Order("progress").Find(tasks)
-	if len(*tasks) == 0 {
-		tasks = nil
-	} else {
-		var p uint = 0 ; for _, t := range *tasks { p += t.Progress }
-		task.Progress = (p / uint(len(*tasks)))
-		DB.Save(&task)
+// Get
+
+func progress(task Task) uint {
+	tasks, err := GetSubTasks(task.Slug)
+	if err != nil || tasks == nil { return task.Progress }
+	var p uint = 0
+	for _, t := range *tasks {
+		p += t.Progress
 	}
-	return &Response {
-		Parent: parent,
-		Task: &task,
-		SubTasks: tasks,
-	}, result.Error
+	return (p / uint(len(*tasks)))
 }
 
-func DatabaseSet(slug string, title string, description string) (Task, error) {
-	var response *Response
-	if len(slug) > 0 {
-		if r, err := DatabaseGet(slug) ; err != nil {
-			return Task{}, err
-		} else {
-			response = r
-		}
-	} else {
-		response = &Response{}
-	}
+func GetParents() (*[]Task, error) {
+	var tasks []Task
+	result := db.Model(&Task{}).Where("parent_id IS NULL").Find(&tasks)
+	if len(tasks) == 0 { return nil, nil }
+	return &tasks, result.Error
+}
+
+func GetTask(slug string) (*Task, error) {
+	var task Task
+	result := db.Model(&Task{}).Where(Task { Slug: slug }).First(&task)
+	return &task, result.Error
+}
+
+func GetParent(slug string) (*Task, error) {
+	task, err := GetTask(slug)
+	if err != nil || task == nil { return nil, err }
+	var parent Task
+	result := db.Model(&Task{}).First(&parent, task.ParentID)
+	if parent.ID == 0 { return nil, result.Error }
+	return &parent, result.Error
+}
+
+func GetSubTasks(slug string) (*[]Task, error) {
+	task, err := GetTask(slug)
+	if err != nil || task == nil { return nil, err }
+	var tasks []Task
+	result := db.Model(&Task{}).Where(Task { ParentID: &task.ID }).Order("progress").Find(&tasks)
+	if len(tasks) == 0 { return nil, result.Error }
+	return &tasks, result.Error
+}
+
+// Set
+
+func New(slug string, title string, description string) (Task, error) {
 	task := Task {
 		Slug: slugify(title),
 		Title: title,
 		Description: description,
 		ParentID: nil,
 	}
-	if response.Task != nil {
-		task.Slug = fmt.Sprintf("%v-%s", response.Task.ID, task.Slug)
-		task.ParentID = &response.Task.ID
+	if len(slug) > 0 {
+		if parent, err := GetTask(slug) ; err != nil {
+			return Task{}, err
+		} else {
+			task.Slug = fmt.Sprintf("%v-%s", parent.ID, task.Slug)
+			task.ParentID = &parent.ID
+		}
 	}
-	result := DB.Create(&task)
+	result := db.Create(&task)
 	return task, result.Error
 }
 
+func Update(task Task) (error) {
+	result := db.Save(&task)
+	return result.Error
+}
+
+func Delete(task Task) (error) {
+	result := db.Delete(&task)
+	return result.Error
+}
+
+// Main
+
 func Database(d gorm.Dialector) (*gorm.DB, error) {
-	db, err := gorm.Open(d, &gorm.Config{}) ; if err != nil {
+	var err error
+	db, err = gorm.Open(d, &gorm.Config{}) ; if err != nil {
 		return nil, err
-	} else {
-		DB = db
-		DB.AutoMigrate(&Task{})
 	}
+	db.AutoMigrate(&Task{})
 	if os.Getenv("DEBUG") == "true" {
 		fmt.Println(slugify("This #Is_A_Slugify Test!!!"))
-		fmt.Println(slug.Make("This #Is_A_Slugi Test!!!"))
-		DB.Session(&gorm.Session { AllowGlobalUpdate: true }).Delete(&Task{})
-		DatabaseSet("", "Title1", "Description _One_")
-		DatabaseSet("", "Title2", "Description _Two_")
-		DatabaseSet("", "Title3", "Description _Three_")
-		DatabaseSet("title1", "Title11", "Description11")
-		DatabaseSet("title1", "Title12", "Description12")
-		DatabaseSet("title1", "Title13", "Description13")
+		fmt.Println(slug.Make("This #Is_A_Slug tESt!!!"))
+		db.Session(&gorm.Session { AllowGlobalUpdate: true }).Delete(&Task{})
+		New("", "Title1", "Description _One_")
+		New("", "Title2", "Description _Two_")
+		New("", "Title3", "Description _Three_")
+		New("title1", "Title11", "Description11")
+		New("title1", "Title12", "Description12")
+		New("title1", "Title13", "Description13")
 		var tasks []Task
-		DB.Model(&Task{}).Find(&tasks)
+		db.Model(&Task{}).Find(&tasks)
 		for _, task := range tasks {
 			fmt.Println(task.ID, task.Slug)
 		}
 	}
-	return DB, nil
+	return db, nil
 }

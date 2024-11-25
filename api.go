@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var API *echo.Echo
+var api *echo.Echo
 
 type Request struct {
 	Id			uint 	`param:"id"`
@@ -48,115 +48,106 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 	return t.templates.ExecuteTemplate(w, name, data)
 }
 
+func request(c echo.Context) (*Request) {
+	var request Request
+	if err := c.Bind(&request) ; err != nil {
+		return nil
+	}
+	return &request
+}
+
 func Api() (*echo.Echo, error) {
-	API = echo.New()
-	API.Pre(middleware.NonWWWRedirect())
-	API.Pre(middleware.RemoveTrailingSlash())
-	API.Use(middleware.LoggerWithConfig(middleware.LoggerConfig {
+	api = echo.New()
+	api.Pre(middleware.NonWWWRedirect())
+	api.Pre(middleware.RemoveTrailingSlash())
+	api.Use(middleware.LoggerWithConfig(middleware.LoggerConfig {
 		Skipper: middleware.DefaultSkipper,
 		Format: "${time_rfc3339} ${method} ${uri} [${status}] ${error}\n",
 	}))
-	API.Renderer = &Template {
+	api.Renderer = &Template {
 	    templates: template.Must(template.ParseGlob("html/*.html")),
 	}
-	API.GET("/favicon.ico", func(c echo.Context) error {
+	api.GET("/favicon.ico", func(c echo.Context) error {
 		return c.NoContent(http.StatusNoContent)
 	})
-	API.GET("/", func(c echo.Context) error {
-		var tasks []Task
-		DB.Model(&Task{}).Where("parent_id IS NULL").Find(&tasks)
+	api.GET("/", func(c echo.Context) error {
+		tasks, _ := GetParents()
 		var responses []Response = make([]Response, 0)
-		for _, task := range tasks {
-			if response, err := DatabaseGet(task.Slug) ; err == nil {
-				responses = append(responses, *response)
-			}
+		for _, task := range *tasks {
+			subtasks, _ := GetSubTasks(task.Slug)
+			responses = append(responses, Response {
+				Parent: nil,
+				Task: &task,
+				SubTasks: subtasks,
+			})
 		}
 		return c.Render(http.StatusOK, "index.html", &responses)
 	})
-	API.GET("/+", func(c echo.Context) error {
+	api.GET("/+", func(c echo.Context) error {
 		return c.Render(http.StatusOK, "form.html", nil)
 	})
-	API.POST("/+", func(c echo.Context) error {
-		var request Request ; if err := c.Bind(&request) ; err != nil {
-			return c.String(http.StatusBadRequest, "!")
-		}
-		task, err := DatabaseSet("", request.Title, request.Description) ; if err != nil {
-			return c.String(http.StatusBadRequest, "!")
-		}
+	api.POST("/+", func(c echo.Context) error {
+		request := request(c) // return c.String(http.StatusBadRequest, "!")
+		task, _ := New("", request.Title, request.Description)
 		return c.Redirect(http.StatusSeeOther, "/" + task.Slug)
 	})
-	API.GET("/:slug", func(c echo.Context) error {
-		var request Request ; if err := c.Bind(&request) ; err != nil {
-			return c.String(http.StatusBadRequest, "!")
-		}
-		response, err := DatabaseGet(request.Slug) ; if err != nil {
-			return c.String(http.StatusNotFound, "!")
-		}
-		return c.Render(http.StatusFound, "task.html", response)
+	api.GET("/:slug", func(c echo.Context) error {
+		request := request(c)
+		parent, _ := GetParent(request.Slug)
+		task, _ := GetTask(request.Slug)
+		tasks, _ := GetSubTasks(request.Slug)
+		return c.Render(http.StatusFound, "task.html", Response {
+			Parent: parent,
+			Task: task,
+			SubTasks: tasks,
+		})
 	})
-	API.GET("/:slug/~", func(c echo.Context) error {
-		var request Request ; if err := c.Bind(&request) ; err != nil {
-			return c.String(http.StatusBadRequest, "!")
-		}
-		response, err := DatabaseGet(request.Slug) ; if err != nil {
-			return c.String(http.StatusNotFound, "!")
-		}
-		return c.Render(http.StatusFound, "form.html", response)
+	api.GET("/:slug/~", func(c echo.Context) error {
+		request := request(c)
+		task, _ := GetTask(request.Slug)
+		return c.Render(http.StatusFound, "form.html", Response {
+			Task: task,
+		})
 	})
-	API.POST("/:slug/~", func(c echo.Context) error {
-		var request Request ; if err := c.Bind(&request) ; err != nil {
-			return c.String(http.StatusBadRequest, "!")
-		}
-		response, err := DatabaseGet(request.Slug) ; if err != nil {
-			return c.String(http.StatusNotFound, "!")
-		}
-		response.Task.Title = request.Title
-		response.Task.Description = request.Description
-		DB.Save(&response.Task)
-		return c.Render(http.StatusFound, "task.html", response)
+	api.POST("/:slug/~", func(c echo.Context) error {
+		request := request(c)
+		task, _ := GetTask(request.Slug)
+		task.Title = request.Title
+		task.Description = request.Description
+		Update(*task)
+		return c.Render(http.StatusFound, "task.html", Response {
+			Task: task,
+		})
 	})
-	API.GET("/:slug/+", func(c echo.Context) error {
-		var request Request ; if err := c.Bind(&request) ; err != nil {
-			return c.String(http.StatusBadRequest, "!")
-		}
-		response, err := DatabaseGet(request.Slug) ; if err != nil {
-			return c.String(http.StatusNotFound, "!")
-		}
-		return c.Render(http.StatusOK, "form.html", response)
+	api.GET("/:slug/+", func(c echo.Context) error {
+		request := request(c)
+		task, _ := GetTask(request.Slug)
+		return c.Render(http.StatusOK, "form.html", Response {
+			Task: task,
+		})
 	})
-	API.POST("/:slug/+", func(c echo.Context) error {
-		var request Request ; if err := c.Bind(&request) ; err != nil {
-			return c.String(http.StatusBadRequest, "!")
-		}
-		task, err := DatabaseSet(request.Slug, request.Title, request.Description) ; if err != nil {
-			return c.String(http.StatusBadRequest, "!")
-		}
-		return c.String(http.StatusOK, task.Slug)
+	api.POST("/:slug/+", func(c echo.Context) error {
+		request := request(c)
+		task, _ := New(request.Slug, request.Title, request.Description)
+		return c.Redirect(http.StatusSeeOther, "/" + task.Slug)
 	})
-	API.GET("/:slug/:progress", func(c echo.Context) error {
-		var request Request ; if err := c.Bind(&request) ; err != nil {
-			return c.String(http.StatusBadRequest, "!")
-		}
-		response, err := DatabaseGet(request.Slug) ; if err != nil {
-			return c.String(http.StatusNotFound, "!")
-		}
-		response.Task.Progress = request.Progress
-		DB.Save(response.Task)
-		return c.Redirect(http.StatusSeeOther, "/" + response.Parent.Slug)
+	api.GET("/:slug/:progress", func(c echo.Context) error {
+		request := request(c)
+		parent, _ := GetParent(request.Slug)
+		task, _ := GetTask(request.Slug)
+		task.Progress = request.Progress
+		Update(*task)
+		return c.Redirect(http.StatusSeeOther, "/" + parent.Slug)
 	})
-	API.GET("/:slug/-", func(c echo.Context) error {
-		var request Request ; if err := c.Bind(&request) ; err != nil {
-			return c.String(http.StatusBadRequest, "!")
-		}
-		response, err := DatabaseGet(request.Slug) ; if err != nil {
-			return c.String(http.StatusNotFound, "!")
-		}
-		DB.Delete(&response.Task)
-		if response.Parent != nil {
-			return c.Redirect(http.StatusSeeOther, "/" + response.Parent.Slug)
+	api.GET("/:slug/-", func(c echo.Context) error {
+		request := request(c)
+		task, _ := GetTask(request.Slug)
+		Delete(*task)
+		if parent, _ := GetParent(request.Slug) ; parent != nil {
+			return c.Redirect(http.StatusSeeOther, "/" + parent.Slug)
 		} else {
 			return c.Redirect(http.StatusSeeOther, "/")
 		}
 	})
-	return API, nil
+	return api, nil
 }
