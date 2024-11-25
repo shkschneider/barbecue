@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/gosimple/slug"
+	// "github.com/gosimple/slug"
 	"gorm.io/gorm"
 	"os"
 )
@@ -83,6 +83,15 @@ func Delete(task Task) (error) {
 	return result.Error
 }
 
+func Dump() (*[]Task) {
+	if os.Getenv("DEBUG") != "true" {
+		return nil
+	}
+	var tasks []Task
+	db.Model(&Task{}).Find(&tasks)
+	return &tasks
+}
+
 // Main
 
 func Database(d gorm.Dialector) (*gorm.DB, error) {
@@ -92,16 +101,18 @@ func Database(d gorm.Dialector) (*gorm.DB, error) {
 	}
 	db.AutoMigrate(&Task{})
 	if os.Getenv("DEBUG") == "true" {
-		fmt.Println(slugify("This #Is_A_Slugify Test!!!"))
-		fmt.Println(slug.Make("This #Is_A_Slug tESt!!!"))
-		db.Session(&gorm.Session { AllowGlobalUpdate: true }).Delete(&Task{})
-		New("", "Title1", "Description _One_")
-		New("", "Title2", "Description _Two_")
-		New("", "Title3", "Description _Three_")
-		New("title1", "Title11", "Description11")
-		New("title1", "Title12", "Description12")
-		New("title1", "Title13", "Description13")
+		var task Task
 		var tasks []Task
+		db.Session(&gorm.Session { AllowGlobalUpdate: true }).Delete(&Task{})
+		New("", "Job", "You can't get a job without experience.")
+		New("job", "Experience", "You can't get experience without a job.")
+		New("", "Ask", "Ask a question.")
+		task, _ = New("ask", "Google", "First answer is 'Google it'!")
+		New(task.Slug, "Search Results", "First link on Google is the exact page where you asked your initial question...")
+		New("", "Definition", "Definition of recursion:")
+		task, _ = New("definition", "Recursion", "See 'Recursion'.")
+		task.Description = "See [Recursion](/" + task.Slug + ")..."
+		Update(task)
 		db.Model(&Task{}).Find(&tasks)
 		for _, task := range tasks {
 			fmt.Println(task.ID, task.Slug)
