@@ -5,24 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/modern-normalize@2/modern-normalize.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css" >
+    <!-- https://www.iconfinder.com/icons/5404327/barbecue_beef_meat_icon -->
+    <link rel="icon" type="image/x-icon" href="/favicon-dark.ico">
+    <link rel="icon" type="image/x-icon" href="/favicon-dark.ico" media="(prefers-color-scheme: light)">
+    <link rel="icon" type="image/x-icon" href="/favicon-light.ico" media="(prefers-color-scheme: dark)">
     <title>Barbecue</title>
         <!-- a { text-decoration: none; } -->
         <!-- header a { color: var(--pico-primary-inverse); } -->
         <!-- a:hover { text-decoration: underline; } -->
     <style>
+        body header a { color: var(--pico-primary-constrat); text-decoration: none; }
+        body header a:hover { color: var(--pico-primary); }
         main kbd { border: 1px var(--pico-code-kbd-background-color) solid; color: var(--pico-code-kbd-background-color); background: none; }
         main kbd:hover { background: var(--pico-code-kbd-background-color); color: var(--pico-code-kbd-color); }
         main input[type=submit] { border: 1px var(--pico-primary-border) solid; background: none; color: var(--pico-primary); }
         main input[type=submit]:hover { background: var(--pico-primary-background); color: var(--pico-primary-inverse); }
-        .flex { display: flex; justify-content: space-between; }
         article li::marker { content: "- "; }
         article li.done::marker { content: "✓ "; }
+        .flex { display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
     <header>
         <hgroup>
-            <h1>&nbsp;&nbsp;<a href="/">Barbecue</a></h1>
-            <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Suckless Task Management</p>
+            <h1>
+                <picture>
+                    <source srcset="/favicon-dark.ico" media="(prefers-color-scheme: light)" />
+                    <source srcset="/favicon-light.ico"  media="(prefers-color-scheme: dark)" />
+                    <img src="/favicon-dark.ico" />
+                </picture>
+                <a href="/">Barbecue</a>
+            </h1>
+            <p>Suckless Task Management</p>
         </hgroup>
     </header>

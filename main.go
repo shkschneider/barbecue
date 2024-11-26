@@ -7,7 +7,8 @@ import (
 
 const NAME = "barbecue"
 var VERSIONS = []string {
-	"2.6", // refactoring
+	"2.7", // polish
+	"2.6", // refactor
 	"2.5", // no globals
 	"2.4", // api, database
 	"2.3", // edition

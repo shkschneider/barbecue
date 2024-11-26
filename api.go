@@ -89,9 +89,8 @@ func Api() (*echo.Echo, error) {
 		}
 	}
 	{
-		api.GET("/favicon.ico", func(c echo.Context) error {
-			return c.NoContent(http.StatusNoContent)
-		})
+		api.File("/favicon-light.ico", "html/favicon-light.ico")
+		api.File("/favicon-dark.ico", "html/favicon-dark.ico")
 		api.GET("/", func(_c echo.Context) error {
 			c := _c.(*LocalContext)
 			tasks, _ := GetParents()
@@ -185,6 +184,7 @@ func Api() (*echo.Echo, error) {
 				return c.redirect("/")
 			}
 		})
+		api.File("/database", NAME + ".sqlite")
 	}
 	return api, nil
 }

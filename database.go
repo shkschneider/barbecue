@@ -49,9 +49,8 @@ func GetParent(slug string) (*Task, error) {
 	task, err := GetTask(slug)
 	if err != nil || task == nil { return nil, err }
 	var parent Task
-	db.Model(&Task{}).First(&parent, task.ParentID)
-	// result := db.Model(&Task{}).First(&parent, task.ParentID)
-	// if result.Error != nil || parent.ID == 0 { return nil, result.Error }
+	result := db.Model(&Task{}).First(&parent, task.ParentID)
+	if result.Error != nil || parent.ID == 0 { return nil, result.Error }
 	return &parent, nil
 }
 

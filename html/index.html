@@ -20,13 +20,34 @@
         {{ end }}
     {{ else }}
         <article>
-            <header>
-                Nothing yet, but don't despare!
-            </header>
             <main>
-                <progress />
+                <script>
+                    Array.prototype.random = function () {
+                      return this[(Math.random() * this.length) | 0];
+                    }
+                    let quote = [
+                        [ "Life is short. Do stuff that matters.", "Siqi Chen" ],
+                        [ "It always seems impossible until it's done.", "Nelson Mandela" ],
+                        [ "Productivity is never an accident.", "Paul J. Meyer" ],
+                        [ "If you spend too much time thinking about a thing, you'll never get it done.", "Bruce Lee" ],
+                        [ "Your mind is for having ideas, not holding them.", "David Allen" ],
+                        [ "You may delay, but time will not.", "Benjamin Franklin" ],
+                        [ "The only way around is through.", "Robert Frost" ],
+                        [ "The secret of getting things done is to act!", "Dante Alighieri" ],
+                        [ "Procrastination is opportunity's assassin.", "Victor Kiam" ],
+                        [ "Only put off until tomorrow what you are willing to die having left undone.", "Pablo Picasso" ],
+                        [ "You can do anything, but not everything.", "David Allen" ],
+                        [ "Pick battles big enough to matter, small enough to win.", "Jonathan Kozol" ],
+                    ].random()
+                    document.write("<blockquote>“" + quote[0] + "”<footer><cite>— " + quote[1] + "</cite></footer></blockquote>");
+                </script>
             </main>
+            <footer>
+                <br />
+                <progress />
+            </footer>
         </article>
+        <br />
         <footer>
             <form method="get" action="/new">
                 <input type="submit" value="+">

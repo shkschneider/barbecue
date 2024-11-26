@@ -12,7 +12,7 @@
                 </p>
                 <a href="/{{ .Task.Slug }}/edit"><kbd>edit</kbd></a>
             </div>
-            <p></p>
+            <br />
             <progress value="{{ .Task.Progress }}" min="0" max="100"></progress>
         </header>
         <main>
@@ -28,7 +28,6 @@
                     {{ end }}
                 {{ end }}
                 <p>󰥪 {{ $done }} / {{ len .SubTasks }}</p>
-                <p></p>
                 <ul>
                     {{ range .SubTasks }}
                         <li
