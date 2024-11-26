@@ -48,18 +48,25 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 	return t.templates.ExecuteTemplate(w, name, data)
 }
 
-func request(c echo.Context) (*Request) {
-	var request Request
-	if err := c.Bind(&request) ; err != nil {
-		return nil
-	}
-	return &request
+type apiContext struct {
+	echo.Context
+	Req Request
 }
 
 func Api() (*echo.Echo, error) {
 	api = echo.New()
+	// api.HTTPErrorHandler = func(err error, c echo.Context) {}
 	api.Pre(middleware.NonWWWRedirect())
 	api.Pre(middleware.RemoveTrailingSlash())
+	api.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			var req Request
+			if err := c.Bind(&req) ; err != nil {
+				return c.NoContent(http.StatusBadRequest)
+			}
+			return next(&apiContext { c, req })
+		}
+	})
 	api.Use(middleware.LoggerWithConfig(middleware.LoggerConfig {
 		Skipper: middleware.DefaultSkipper,
 		Format: "${time_rfc3339} ${method} ${uri} [${status}] ${error}\n",
@@ -87,15 +94,15 @@ func Api() (*echo.Echo, error) {
 		return c.Render(http.StatusOK, "form.html", nil)
 	})
 	api.POST("/+", func(c echo.Context) error {
-		request := request(c) // return c.String(http.StatusBadRequest, "!")
-		task, _ := New("", request.Title, request.Description)
+		req := c.(*apiContext).Req
+		task, _ := New("", req.Title, req.Description)
 		return c.Redirect(http.StatusSeeOther, "/" + task.Slug)
 	})
 	api.GET("/:slug", func(c echo.Context) error {
-		request := request(c)
-		parent, _ := GetParent(request.Slug)
-		task, _ := GetTask(request.Slug)
-		tasks, _ := GetSubTasks(request.Slug)
+		req := c.(*apiContext).Req
+		parent, _ := GetParent(req.Slug)
+		task, _ := GetTask(req.Slug)
+		tasks, _ := GetSubTasks(req.Slug)
 		return c.Render(http.StatusFound, "task.html", Response {
 			Parent: parent,
 			Task: task,
@@ -103,47 +110,47 @@ func Api() (*echo.Echo, error) {
 		})
 	})
 	api.GET("/:slug/~", func(c echo.Context) error {
-		request := request(c)
-		task, _ := GetTask(request.Slug)
+		req := c.(*apiContext).Req
+		task, _ := GetTask(req.Slug)
 		return c.Render(http.StatusFound, "form.html", Response {
 			Task: task,
 		})
 	})
 	api.POST("/:slug/~", func(c echo.Context) error {
-		request := request(c)
-		task, _ := GetTask(request.Slug)
-		task.Title = request.Title
-		task.Description = request.Description
+		req := c.(*apiContext).Req
+		task, _ := GetTask(req.Slug)
+		task.Title = req.Title
+		task.Description = req.Description
 		Update(*task)
 		return c.Render(http.StatusFound, "task.html", Response {
 			Task: task,
 		})
 	})
 	api.GET("/:slug/+", func(c echo.Context) error {
-		request := request(c)
-		task, _ := GetTask(request.Slug)
+		req := c.(*apiContext).Req
+		task, _ := GetTask(req.Slug)
 		return c.Render(http.StatusOK, "form.html", Response {
 			Task: task,
 		})
 	})
 	api.POST("/:slug/+", func(c echo.Context) error {
-		request := request(c)
-		task, _ := New(request.Slug, request.Title, request.Description)
+		req := c.(*apiContext).Req
+		task, _ := New(req.Slug, req.Title, req.Description)
 		return c.Redirect(http.StatusSeeOther, "/" + task.Slug)
 	})
 	api.GET("/:slug/:progress", func(c echo.Context) error {
-		request := request(c)
-		parent, _ := GetParent(request.Slug)
-		task, _ := GetTask(request.Slug)
-		task.Progress = request.Progress
+		req := c.(*apiContext).Req
+		parent, _ := GetParent(req.Slug)
+		task, _ := GetTask(req.Slug)
+		task.Progress = req.Progress
 		Update(*task)
 		return c.Redirect(http.StatusSeeOther, "/" + parent.Slug)
 	})
 	api.GET("/:slug/-", func(c echo.Context) error {
-		request := request(c)
-		task, _ := GetTask(request.Slug)
+		req := c.(*apiContext).Req
+		task, _ := GetTask(req.Slug)
 		Delete(*task)
-		if parent, _ := GetParent(request.Slug) ; parent != nil {
+		if parent, _ := GetParent(req.Slug) ; parent != nil {
 			return c.Redirect(http.StatusSeeOther, "/" + parent.Slug)
 		} else {
 			return c.Redirect(http.StatusSeeOther, "/")
