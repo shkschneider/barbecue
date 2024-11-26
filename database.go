@@ -8,7 +8,7 @@ import (
 )
 
 type Database struct {
-	gorm.DB
+	*gorm.DB
 }
 
 // "github.com/gosimple/slug"
@@ -117,7 +117,7 @@ func NewDatabase(d gorm.Dialector) (*Database, error) {
 	if d, err := gorm.Open(d, &config) ; err != nil {
 		return nil, err
 	} else {
-		db = Database { *d }
+		db = Database { d }
 	}
 	db.AutoMigrate(&Task{})
 	if DEBUG {

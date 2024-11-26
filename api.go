@@ -13,7 +13,7 @@ import (
 
 type (
 	Api struct {
-		echo.Echo
+		*echo.Echo
 	}
 	ApiRequest struct {
 		Id			uint 	`param:"id"`
@@ -34,7 +34,7 @@ type (
 )
 
 func NewApi(db *Database) (*Api, error) {
-	var api Api = Api { *echo.New() }
+	var api Api = Api { echo.New() }
 	api.Debug = DEBUG
 	// Middlewares
 	api.Pre(middleware.NonWWWRedirect())
