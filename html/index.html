@@ -1,7 +1,7 @@
 {{ template "_header.html" }}
 
 <main>
-    {{ if . }}
+    {{ if len . }}
         {{ range . }}
             <article>
                 <a href="/{{ .Task.Slug }}">{{ .Task.Title }}</a>
@@ -20,8 +20,18 @@
         {{ end }}
     {{ else }}
         <article>
-            <progress />
+            <header>
+                Nothing yet, but don't despare!
+            </header>
+            <main>
+                <progress />
+            </main>
         </article>
+        <footer>
+            <form method="get" action="/new">
+                <input type="submit" value="+">
+            </form>
+        </footer>
     {{ end }}
 </main>
 

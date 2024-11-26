@@ -7,13 +7,14 @@ import (
 
 const NAME = "barbecue"
 var VERSIONS = []string {
-	"2.5",	// no globals
-	"2.4",	// api, database
-	"2.3",	// edition
-	"2.2",	// progress
-	"2.1",	// subtasks
-	"2.0",	// golang with echo, html/template, sqlite
- 	"1.0",	// html5 plain javascript, subtasks and progress
+	"2.6", // refactoring
+	"2.5", // no globals
+	"2.4", // api, database
+	"2.3", // edition
+	"2.2", // progress
+	"2.1", // subtasks
+	"2.0", // golang with echo, html/template, sqlite
+ 	"1.0", // html5 plain javascript, subtasks and progress
 }
 
 type Task struct {

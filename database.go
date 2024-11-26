@@ -5,11 +5,28 @@ import (
 	// "github.com/gosimple/slug"
 	"gorm.io/gorm"
 	"os"
+	"strings"
 )
 
 var db *gorm.DB
 
 // Get
+
+func slugify(s string) string {
+	s = strings.ToLower(s)
+	s = strings.Map(func(r rune) rune {
+		if (r < 'a' || r > 'z') && r != '-' && r != '_' && (r < '0' || r > '9') {
+			return rune('-')
+		} else {
+			return r
+		}
+	}, s)
+	s = strings.ReplaceAll(s, "_", "-")
+	s = strings.ReplaceAll(s, "--", "-")
+	for strings.HasPrefix(s, "-") { s = strings.TrimPrefix(s, "-") }
+	for strings.HasSuffix(s, "-") { s = strings.TrimSuffix(s, "-") }
+	return s
+}
 
 func progress(task Task) uint {
 	tasks, err := GetSubTasks(task.Slug)
@@ -28,19 +45,20 @@ func GetParents() (*[]Task, error) {
 	return &tasks, result.Error
 }
 
-func GetTask(slug string) (*Task, error) {
-	var task Task
-	result := db.Model(&Task{}).Where(Task { Slug: slug }).First(&task)
-	return &task, result.Error
-}
-
 func GetParent(slug string) (*Task, error) {
 	task, err := GetTask(slug)
 	if err != nil || task == nil { return nil, err }
 	var parent Task
-	result := db.Model(&Task{}).First(&parent, task.ParentID)
-	if parent.ID == 0 { return nil, result.Error }
-	return &parent, result.Error
+	db.Model(&Task{}).First(&parent, task.ParentID)
+	// result := db.Model(&Task{}).First(&parent, task.ParentID)
+	// if result.Error != nil || parent.ID == 0 { return nil, result.Error }
+	return &parent, nil
+}
+
+func GetTask(slug string) (*Task, error) {
+	var task Task
+	result := db.Model(&Task{}).Where(Task { Slug: slug }).First(&task)
+	return &task, result.Error
 }
 
 func GetSubTasks(slug string) (*[]Task, error) {
@@ -110,8 +128,8 @@ func Database(d gorm.Dialector) (*gorm.DB, error) {
 		task, _ = New("ask", "Google", "First answer is 'Google it'!")
 		New(task.Slug, "Search Results", "First link on Google is the exact page where you asked your initial question...")
 		New("", "Definition", "Definition of recursion:")
-		task, _ = New("definition", "Recursion", "See 'Recursion'.")
-		task.Description = "See [Recursion](/" + task.Slug + ")..."
+		task, _ = New("definition", "Recursion", "See its definition...")
+		task.Description = "See its [definition](/definition)..."
 		Update(task)
 		db.Model(&Task{}).Find(&tasks)
 		for _, task := range tasks {

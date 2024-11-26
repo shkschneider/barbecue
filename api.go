@@ -6,155 +6,185 @@ import (
 	"html/template"
 	"io"
 	"net/http"
-	"strings"
+)
+
+const (
+    TEMPLATES = "html/*.html"
+	tINDEX = "index.html"
+	tTASK = "task.html"
+	tFORM = "form.html"
+	tERROR = "error.html"
 )
 
 var api *echo.Echo
 
-type Request struct {
-	Id			uint 	`param:"id"`
-	Slug		string 	`param:"slug"`
-	Title 		string 	`form:"title"`
-	Description string 	`form:"description"`
-	Progress	uint 	`param:"progress"`
-}
+type (
+	ApiRequest struct {
+		Id			uint 	`param:"id"`
+		Slug		string 	`param:"slug"`
+		Title 		string 	`form:"title"`
+		Description string 	`form:"description"`
+		Progress	uint 	`param:"progress"`
+	}
+	ApiResponse struct {
+		Parent		*Task	`json:"parent,omitempty"`
+		Task		*Task	`json:"task"`
+		SubTasks	*[]Task `json:"subtasks"`
+	}
+	Template struct {
+	    templates *template.Template
+	}
+	LocalContext struct {
+		echo.Context
+		apiRequest ApiRequest
+		// apiResponse ApiResponse
+	}
+)
 
-type Response struct {
-	Parent		*Task	`json:"parent,omitempty"`
-	Task		*Task	`json:"task"`
-	SubTasks	*[]Task `json:"subtasks"`
-}
-
-func slugify(s string) string {
-	s = strings.ToLower(s)
-	s = strings.Map(func(r rune) rune {
-		if (r < 'a' || r > 'z') && r != '-' && r != '_' && (r < '0' || r > '9') {
-			return rune('-')
-		} else {
-			return r
-		}
-	}, s)
-	s = strings.ReplaceAll(s, "_", "-")
-	s = strings.ReplaceAll(s, "--", "-")
-	for strings.HasPrefix(s, "-") { s = strings.TrimPrefix(s, "-") }
-	for strings.HasSuffix(s, "-") { s = strings.TrimSuffix(s, "-") }
-	return s
-}
-
-type Template struct {
-    templates *template.Template
-}
 func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return t.templates.ExecuteTemplate(w, name, data)
 }
 
-type apiContext struct {
-	echo.Context
-	Req Request
+func (c LocalContext) ok(code int, template string, data interface{}) error {
+	return c.Render(code, template, data)
+}
+
+func (c LocalContext) ko(code int) error {
+	return c.Render(code, tERROR, struct {
+		Code int
+		Message string
+	} {
+		Code: code,
+		Message: http.StatusText(code),
+	})
+}
+
+func (c LocalContext) redirect(uri string) error {
+	// if len(uri) == 0 || !strings.HasPrefix(uri, "/") { uri = "/" }
+	return c.Redirect(http.StatusSeeOther, uri)
 }
 
 func Api() (*echo.Echo, error) {
 	api = echo.New()
-	// api.HTTPErrorHandler = func(err error, c echo.Context) {}
-	api.Pre(middleware.NonWWWRedirect())
-	api.Pre(middleware.RemoveTrailingSlash())
-	api.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			var req Request
-			if err := c.Bind(&req) ; err != nil {
-				return c.NoContent(http.StatusBadRequest)
+	{
+		api.Pre(middleware.NonWWWRedirect())
+		api.Pre(middleware.RemoveTrailingSlash())
+		api.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				var apiRequest ApiRequest
+				if err := c.Bind(&apiRequest) ; err != nil {
+					return c.NoContent(http.StatusBadRequest)
+				}
+				return next(&LocalContext { c, apiRequest })
 			}
-			return next(&apiContext { c, req })
-		}
-	})
-	api.Use(middleware.LoggerWithConfig(middleware.LoggerConfig {
-		Skipper: middleware.DefaultSkipper,
-		Format: "${time_rfc3339} ${method} ${uri} [${status}] ${error}\n",
-	}))
-	api.Renderer = &Template {
-	    templates: template.Must(template.ParseGlob("html/*.html")),
+		})
+		api.Use(middleware.LoggerWithConfig(middleware.LoggerConfig {
+			Skipper: middleware.DefaultSkipper,
+			Format: "${time_rfc3339} ${method} ${uri} [${status}] ${error}\n",
+		}))
 	}
-	api.GET("/favicon.ico", func(c echo.Context) error {
-		return c.NoContent(http.StatusNoContent)
-	})
-	api.GET("/", func(c echo.Context) error {
-		tasks, _ := GetParents()
-		var responses []Response = make([]Response, 0)
-		for _, task := range *tasks {
-			subtasks, _ := GetSubTasks(task.Slug)
-			responses = append(responses, Response {
-				Parent: nil,
-				Task: &task,
-				SubTasks: subtasks,
+	{
+		api.Renderer = &Template {
+		    templates: template.Must(template.ParseGlob(TEMPLATES)),
+		}
+	}
+	{
+		api.GET("/favicon.ico", func(c echo.Context) error {
+			return c.NoContent(http.StatusNoContent)
+		})
+		api.GET("/", func(_c echo.Context) error {
+			c := _c.(*LocalContext)
+			tasks, _ := GetParents()
+			if tasks == nil {
+				return c.ok(http.StatusOK, tINDEX, []ApiResponse{})
+			}
+			var responses []ApiResponse = *new([]ApiResponse)
+			for _, task := range *tasks {
+				subtasks, _ := GetSubTasks(task.Slug)
+				responses = append(responses, ApiResponse {
+					Parent: nil,
+					Task: &task,
+					SubTasks: subtasks,
+				})
+			}
+			return c.ok(http.StatusOK, tINDEX, &responses)
+		})
+		api.GET("/new", func(_c echo.Context) error {
+			c := _c.(*LocalContext)
+			return c.ok(http.StatusOK, tFORM, nil)
+		})
+		api.POST("/new", func(_c echo.Context) error {
+			c := _c.(*LocalContext)
+			task, err := New("", c.apiRequest.Title, c.apiRequest.Description)
+			if err != nil { return c.ko(http.StatusInternalServerError) }
+			return c.redirect("/" + task.Slug)
+		})
+		api.GET("/:slug", func(_c echo.Context) error {
+			c := _c.(*LocalContext)
+			parent, _ := GetParent(c.apiRequest.Slug)
+			task, err := GetTask(c.apiRequest.Slug)
+			if err != nil { return c.ko(http.StatusNotFound) }
+			tasks, _ := GetSubTasks(c.apiRequest.Slug)
+			return c.ok(http.StatusFound, tTASK, ApiResponse {
+				Parent: parent,
+				Task: task,
+				SubTasks: tasks,
 			})
-		}
-		return c.Render(http.StatusOK, "index.html", &responses)
-	})
-	api.GET("/+", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "form.html", nil)
-	})
-	api.POST("/+", func(c echo.Context) error {
-		req := c.(*apiContext).Req
-		task, _ := New("", req.Title, req.Description)
-		return c.Redirect(http.StatusSeeOther, "/" + task.Slug)
-	})
-	api.GET("/:slug", func(c echo.Context) error {
-		req := c.(*apiContext).Req
-		parent, _ := GetParent(req.Slug)
-		task, _ := GetTask(req.Slug)
-		tasks, _ := GetSubTasks(req.Slug)
-		return c.Render(http.StatusFound, "task.html", Response {
-			Parent: parent,
-			Task: task,
-			SubTasks: tasks,
 		})
-	})
-	api.GET("/:slug/~", func(c echo.Context) error {
-		req := c.(*apiContext).Req
-		task, _ := GetTask(req.Slug)
-		return c.Render(http.StatusFound, "form.html", Response {
-			Task: task,
+		api.GET("/:slug/edit", func(_c echo.Context) error {
+			c := _c.(*LocalContext)
+			task, err := GetTask(c.apiRequest.Slug)
+			if err != nil { return c.ko(http.StatusNotFound) }
+			return c.ok(http.StatusFound, tFORM, ApiResponse {
+				Task: task,
+			})
 		})
-	})
-	api.POST("/:slug/~", func(c echo.Context) error {
-		req := c.(*apiContext).Req
-		task, _ := GetTask(req.Slug)
-		task.Title = req.Title
-		task.Description = req.Description
-		Update(*task)
-		return c.Render(http.StatusFound, "task.html", Response {
-			Task: task,
+		api.POST("/:slug/edit", func(_c echo.Context) error {
+			c := _c.(*LocalContext)
+			task, err := GetTask(c.apiRequest.Slug)
+			if err != nil { return c.ko(http.StatusNotFound) }
+			task.Title = c.apiRequest.Title
+			task.Description = c.apiRequest.Description
+			Update(*task)
+			return c.ok(http.StatusFound, tTASK, ApiResponse {
+				Task: task,
+			})
 		})
-	})
-	api.GET("/:slug/+", func(c echo.Context) error {
-		req := c.(*apiContext).Req
-		task, _ := GetTask(req.Slug)
-		return c.Render(http.StatusOK, "form.html", Response {
-			Task: task,
+		api.GET("/:slug/new", func(_c echo.Context) error {
+			c := _c.(*LocalContext)
+			task, err := GetTask(c.apiRequest.Slug)
+			if err != nil { return c.ko(http.StatusNotFound) }
+			return c.ok(http.StatusOK, tFORM, ApiResponse {
+				Parent: task,
+			})
 		})
-	})
-	api.POST("/:slug/+", func(c echo.Context) error {
-		req := c.(*apiContext).Req
-		task, _ := New(req.Slug, req.Title, req.Description)
-		return c.Redirect(http.StatusSeeOther, "/" + task.Slug)
-	})
-	api.GET("/:slug/:progress", func(c echo.Context) error {
-		req := c.(*apiContext).Req
-		parent, _ := GetParent(req.Slug)
-		task, _ := GetTask(req.Slug)
-		task.Progress = req.Progress
-		Update(*task)
-		return c.Redirect(http.StatusSeeOther, "/" + parent.Slug)
-	})
-	api.GET("/:slug/-", func(c echo.Context) error {
-		req := c.(*apiContext).Req
-		task, _ := GetTask(req.Slug)
-		Delete(*task)
-		if parent, _ := GetParent(req.Slug) ; parent != nil {
-			return c.Redirect(http.StatusSeeOther, "/" + parent.Slug)
-		} else {
-			return c.Redirect(http.StatusSeeOther, "/")
-		}
-	})
+		api.POST("/:slug/new", func(_c echo.Context) error {
+			c := _c.(*LocalContext)
+			task, err := New(c.apiRequest.Slug, c.apiRequest.Title, c.apiRequest.Description)
+			if err != nil { return c.ko(http.StatusNotFound) }
+			return c.redirect("/" + task.Slug)
+		})
+		api.GET("/:slug/:progress", func(_c echo.Context) error {
+			c := _c.(*LocalContext)
+			parent, err := GetParent(c.apiRequest.Slug)
+			task, err := GetTask(c.apiRequest.Slug)
+			if err != nil { return c.ko(http.StatusNotFound) }
+			task.Progress = c.apiRequest.Progress
+			Update(*task)
+			return c.redirect("/" + parent.Slug)
+		})
+		api.GET("/:slug/delete", func(_c echo.Context) error {
+			c := _c.(*LocalContext)
+			task, err := GetTask(c.apiRequest.Slug)
+			if err != nil { return c.ko(http.StatusNotFound) }
+			parent, _ := GetParent(c.apiRequest.Slug)
+			Delete(*task)
+			if parent != nil {
+				return c.redirect("/" + parent.Slug)
+			} else {
+				return c.redirect("/")
+			}
+		})
+	}
 	return api, nil
 }

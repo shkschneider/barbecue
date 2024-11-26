@@ -10,7 +10,7 @@
                     {{ end }}
                     <b>{{ .Task.Title }}</b>
                 </p>
-                <a href="/{{ .Task.Slug }}/~"><kbd>edit</kbd></a>
+                <a href="/{{ .Task.Slug }}/edit"><kbd>edit</kbd></a>
             </div>
             <p></p>
             <progress value="{{ .Task.Progress }}" min="0" max="100"></progress>
@@ -51,7 +51,7 @@
                 </form>
             {{ end }}
         {{ end }}
-        <form method="get" action="/{{ .Task.Slug }}/+">
+        <form method="get" action="/{{ .Task.Slug }}/new">
             <input type="submit" value="+">
         </form>
     </footer>
