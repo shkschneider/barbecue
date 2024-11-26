@@ -2,16 +2,16 @@ package main
 
 import (
 	"fmt"
-	// "github.com/gosimple/slug"
 	"gorm.io/gorm"
-	"os"
+	"gorm.io/gorm/logger"
 	"strings"
 )
 
-var db *gorm.DB
+type Database struct {
+	gorm.DB
+}
 
-// Get
-
+// "github.com/gosimple/slug"
 func slugify(s string) string {
 	s = strings.ToLower(s)
 	s = strings.Map(func(r rune) rune {
@@ -28,112 +28,115 @@ func slugify(s string) string {
 	return s
 }
 
-func progress(task Task) uint {
-	tasks, err := GetSubTasks(task.Slug)
-	if err != nil || tasks == nil { return task.Progress }
-	var p uint = 0
-	for _, t := range *tasks {
-		p += t.Progress
-	}
-	return (p / uint(len(*tasks)))
+// Get
+
+func (d Database) getParents() (*[]Task, error) {
+	var parents []Task
+	result := d.Model(&Task{}).Where("super IS NULL").Order("progress").Find(&parents)
+	if len(parents) == 0 { return nil, nil }
+	return &parents, result.Error
 }
 
-func GetParents() (*[]Task, error) {
+func (d Database) get(slug string) (*Task, error) {
+	var task Task
+	result := d.Model(&Task{}).Where(Task { Slug: slug }).First(&task)
+	if result.Error == nil {
+		var children []Task
+		result := d.Model(&Task{}).Where(Task { Super: &task.ID }).Find(&children)
+		if result.Error == nil && len(children) > 0 {
+			task.Progress = 0
+			for _, child := range children {
+				task.Progress += child.Progress
+			}
+			task.Progress = task.Progress / uint(len(children))
+			d.Save(&task)
+		}
+	}
+	return &task, result.Error
+}
+
+func (d Database) getAll() (*[]Task, error) {
 	var tasks []Task
-	result := db.Model(&Task{}).Where("parent_id IS NULL").Find(&tasks)
+	result := d.Model(&Task{}).Find(&tasks)
 	if len(tasks) == 0 { return nil, nil }
 	return &tasks, result.Error
 }
 
-func GetParent(slug string) (*Task, error) {
-	task, err := GetTask(slug)
-	if err != nil || task == nil { return nil, err }
+func (d Database) getParent(task *Task) (*Task, error) {
 	var parent Task
-	result := db.Model(&Task{}).First(&parent, task.ParentID)
+	result := d.Model(&Task{}).First(&parent, task.Super)
 	if result.Error != nil || parent.ID == 0 { return nil, result.Error }
 	return &parent, nil
 }
 
-func GetTask(slug string) (*Task, error) {
-	var task Task
-	result := db.Model(&Task{}).Where(Task { Slug: slug }).First(&task)
-	return &task, result.Error
-}
-
-func GetSubTasks(slug string) (*[]Task, error) {
-	task, err := GetTask(slug)
-	if err != nil || task == nil { return nil, err }
-	var tasks []Task
-	result := db.Model(&Task{}).Where(Task { ParentID: &task.ID }).Order("progress").Find(&tasks)
-	if len(tasks) == 0 { return nil, result.Error }
-	return &tasks, result.Error
+func (d Database) getChildren(task *Task) (*[]Task, error) {
+	var children []Task
+	result := d.Model(&Task{}).Where(Task { Super: &task.ID }).Order("progress").Find(&children)
+	if len(children) == 0 { return nil, result.Error }
+	return &children, result.Error
 }
 
 // Set
 
-func New(slug string, title string, description string) (Task, error) {
+func (d *Database) add(slug string, title string, description string) (Task, error) {
 	task := Task {
 		Slug: slugify(title),
 		Title: title,
 		Description: description,
-		ParentID: nil,
+		Super: nil,
 	}
 	if len(slug) > 0 {
-		if parent, err := GetTask(slug) ; err != nil {
+		if parent, err := d.get(slug) ; err != nil {
 			return Task{}, err
 		} else {
 			task.Slug = fmt.Sprintf("%v-%s", parent.ID, task.Slug)
-			task.ParentID = &parent.ID
+			task.Super = &parent.ID
 		}
 	}
-	result := db.Create(&task)
+	result := d.Create(&task)
 	return task, result.Error
 }
 
-func Update(task Task) (error) {
-	result := db.Save(&task)
+func (d *Database) update(task Task) (error) {
+	result := d.Save(&task)
 	return result.Error
 }
 
-func Delete(task Task) (error) {
-	result := db.Delete(&task)
+func (d *Database) remove(task Task) (error) {
+	result := d.Delete(&task)
 	return result.Error
-}
-
-func Dump() (*[]Task) {
-	if os.Getenv("DEBUG") != "true" {
-		return nil
-	}
-	var tasks []Task
-	db.Model(&Task{}).Find(&tasks)
-	return &tasks
 }
 
 // Main
 
-func Database(d gorm.Dialector) (*gorm.DB, error) {
-	var err error
-	db, err = gorm.Open(d, &gorm.Config{}) ; if err != nil {
+func NewDatabase(d gorm.Dialector) (*Database, error) {
+	var db Database
+	config := gorm.Config {
+		Logger: logger.Default.LogMode(logger.Silent),
+	}
+	if d, err := gorm.Open(d, &config) ; err != nil {
 		return nil, err
+	} else {
+		db = Database { *d }
 	}
 	db.AutoMigrate(&Task{})
-	if os.Getenv("DEBUG") == "true" {
+	if DEBUG {
 		var task Task
 		var tasks []Task
 		db.Session(&gorm.Session { AllowGlobalUpdate: true }).Delete(&Task{})
-		New("", "Job", "You can't get a job without experience.")
-		New("job", "Experience", "You can't get experience without a job.")
-		New("", "Ask", "Ask a question.")
-		task, _ = New("ask", "Google", "First answer is 'Google it'!")
-		New(task.Slug, "Search Results", "First link on Google is the exact page where you asked your initial question...")
-		New("", "Definition", "Definition of recursion:")
-		task, _ = New("definition", "Recursion", "See its definition...")
+		db.add("", "Job", "You can't get a job without experience.")
+		db.add("job", "Experience", "You can't get experience without a job.")
+		db.add("", "Ask", "Ask a question.")
+		task, _ = db.add("ask", "Google", "First answer is 'Google it'!")
+		db.add(task.Slug, "Search Results", "First link on Google is the exact page where you asked your initial question...")
+		db.add("", "Definition", "Definition of recursion:")
+		task, _ = db.add("definition", "Recursion", "See its definition...")
 		task.Description = "See its [definition](/definition)..."
-		Update(task)
+		db.update(task)
 		db.Model(&Task{}).Find(&tasks)
 		for _, task := range tasks {
-			fmt.Println(task.ID, task.Slug)
+			log.Debug(fmt.Sprintf("#%d %s", task.ID, task.Slug))
 		}
 	}
-	return db, nil
+	return &db, nil
 }

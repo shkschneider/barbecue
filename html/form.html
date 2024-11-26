@@ -5,11 +5,11 @@
     <article>
         {{ if .Parent }}
             <header>
-                <a href="/{{ .Parent.Slug }}">{{ .Parent.Title }}</a>
+                <p><a href="/{{ .Parent.Slug }}">{{ .Parent.Title }}</a> / <i>new</i></p>
             </header>
         {{ else if .Task }}
             <header class="flex">
-                <a href="/{{ .Task.Slug }}">{{ .Task.Title }}</a>
+                <p><a href="/{{ .Task.Slug }}">{{ .Task.Title }}</a> / <i>new</i></p>
                 <a href="#" onClick="document.getElementById('modal').showModal()">
                     <kbd>delete</kbd>
                 </a>
@@ -18,7 +18,7 @@
                         Delete <b>{{ .Task.Title }}</b>?
                         <footer>
                             <button class="secondary" onClick="document.getElementById('modal').close()" autofocus>Cancel</button>
-                            <button onClick="location.href='/{{ .Task.Slug }}/delete'">Confirm</button>
+                            <button onClick="location.href='/{{ .Task.Slug }}/_delete'">Confirm</button>
                         </footer>
                     </article>
                 </dialog>

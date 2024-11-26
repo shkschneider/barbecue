@@ -10,7 +10,7 @@
                     {{ end }}
                     <b>{{ .Task.Title }}</b>
                 </p>
-                <a href="/{{ .Task.Slug }}/edit"><kbd>edit</kbd></a>
+                <a href="/{{ .Task.Slug }}/_edit"><kbd>edit</kbd></a>
             </div>
             <br />
             <progress value="{{ .Task.Progress }}" min="0" max="100"></progress>
@@ -19,27 +19,30 @@
             <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
             <script>document.write(marked.parse("{{ .Task.Description }}"));</script>
         </main>
-        {{ if .SubTasks }}
+        {{ if .Children }}
             <footer>
                 {{ $done := 0 }}
-                {{ range .SubTasks }}
+                {{ range .Children }}
                     {{ if eq .Progress 100 }}
                         {{ $done = len (printf "a%*s" $done "") }}
                     {{ end }}
                 {{ end }}
-                <p>󰥪 {{ $done }} / {{ len .SubTasks }}</p>
+                <p>󰥪 {{ $done }} / {{ len .Children }}</p>
                 <ul>
-                    {{ range .SubTasks }}
-                        <li
-                        {{ if eq .Progress 100 }}class="done"{{ end }}
-                        ><a href="/{{ .Slug }}">{{ .Title }}</a> ({{ .Progress }}%)</li>
+                    {{ range .Children }}
+                        <li {{ if eq .Progress 100 }}class="done"{{ end }}>
+                            <div class="flex">
+                                <a href="/{{ .Slug }}">{{ .Title }}</a>
+                                <p>{{ .Progress }}%</p>
+                            </div>
+                        </li>
                     {{ end }}
                 </ul>
             </footer>
         {{ end }}
     </article>
     <footer>
-        {{ if not .SubTasks }}
+        {{ if not .Children }}
             {{ if lt .Task.Progress 100 }}
                 <form method="get" action="/{{ .Task.Slug }}/100">
                     <input type="submit" value="Done" />
@@ -50,7 +53,7 @@
                 </form>
             {{ end }}
         {{ end }}
-        <form method="get" action="/{{ .Task.Slug }}/new">
+        <form method="get" action="/{{ .Task.Slug }}/_new">
             <input type="submit" value="+">
         </form>
     </footer>

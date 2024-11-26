@@ -3,11 +3,12 @@ package main
 import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"os"
 )
 
 const NAME = "barbecue"
 var VERSIONS = []string {
-	"2.7", // polish
+	"2.7", // rc: polish
 	"2.6", // refactor
 	"2.5", // no globals
 	"2.4", // api, database
@@ -17,23 +18,33 @@ var VERSIONS = []string {
 	"2.0", // golang with echo, html/template, sqlite
  	"1.0", // html5 plain javascript, subtasks and progress
 }
+var DEBUG bool = false
 
 type Task struct {
-	gorm.Model
-	Slug 		string 	`param:"slug"`
-	Title 		string 	`form:"title"`
-	Description string 	`form:"description"`
-	Progress	uint	`form:"progress"`
-	ParentID 	*uint
+	gorm.Model			`json:"-"`
+	Slug 		string 	`json:"slug",param:"slug"`
+	Title 		string 	`json:"title",form:"title"`
+	Description string 	`json:"description",form:"description"`
+	Progress	uint	`json:"progress",form:"progress"`
+	Super 		*uint	`json:"-"`
 }
 
 func main() {
-	if _, err := Database(sqlite.Open(NAME + ".sqlite")) ; err != nil {
-		panic("repository")
-	}
-	if api, err := Api() ; err != nil {
-		panic("usecase")
+	DEBUG = (os.Getenv("DEBUG") == "true")
+	if DEBUG {
+		NewLog(os.Stderr, LogLevelDebug, true)
 	} else {
-		api.Logger.Fatal(api.Start("0.0.0.0:8080"))
+		NewLog(os.Stderr, LogLevelInfo, true)
 	}
+	log.Info("Database...")
+	db, err := NewDatabase(sqlite.Open(NAME + ".sqlite"))
+	if err != nil {
+		log.Panic("database")
+	}
+	log.Info("Api...")
+	api, err := NewApi(db)
+	if err != nil {
+		log.Panic("api")
+	}
+	api.Run("0.0.0.0:8080")
 }

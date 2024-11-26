@@ -4,17 +4,18 @@
     {{ if len . }}
         {{ range . }}
             <article>
-                <a href="/{{ .Task.Slug }}">{{ .Task.Title }}</a>
-                {{ if .SubTasks }}
-                    {{ $done := 0 }}
-                    {{ range .SubTasks }}
-                        {{ if eq .Progress 100 }}
-                            {{ $done = len (printf "a%*s" $done "") }}
+                <div class="flex">
+                    <a href="/{{ .Task.Slug }}">{{ .Task.Title }}</a>
+                    {{ if .Children }}
+                        {{ $done := 0 }}
+                        {{ range .Children }}
+                            {{ if eq .Progress 100 }}
+                                {{ $done = len (printf "a%*s" $done "") }}
+                            {{ end }}
                         {{ end }}
+                        <p>{{ $done }}/{{ len .Children }}</p>
                     {{ end }}
-                    ({{ $done }}/{{ len .SubTasks }})
-                {{ end }}
-                <p></p>
+                </div>
                 <progress value="{{ .Task.Progress }}" min="0" max="100"></progress>
             </article>
         {{ end }}
@@ -47,13 +48,13 @@
                 <progress />
             </footer>
         </article>
-        <br />
-        <footer>
-            <form method="get" action="/new">
-                <input type="submit" value="+">
-            </form>
-        </footer>
     {{ end }}
+    <br />
+    <footer>
+        <form method="get" action="/_new">
+            <input type="submit" value="+">
+        </form>
+    </footer>
 </main>
 
 {{ template "_footer.html" }}
