@@ -1,0 +1,78 @@
+{{ template "_header.html" }}
+
+<main>
+    {{ if len . }}
+        {{ range . }}
+            <article>
+                <div class="flex">
+                    <a href="/{{ .Task.Slug }}">{{ .Task.Title }}</a>
+                    {{ if .Children }}
+                        {{ $done := 0 }}
+                        {{ range .Children }}
+                            {{ if eq .Progress 100 }}
+                                {{ $done = len (printf "a%*s" $done "") }}
+                            {{ end }}
+                        {{ end }}
+                        <p>{{ $done }}/{{ len .Children }}</p>
+                    {{ end }}
+                </div>
+                <progress value="{{ .Task.Progress }}" min="0" max="100"></progress>
+            </article>
+        {{ end }}
+    {{ else }}
+        <article>
+            <main>
+                <script>
+                    Array.prototype.random = function () {
+                      return this[(Math.random() * this.length) | 0];
+                    }
+                    let quote = [
+                        [ "Anyone who has never made a mistake has never tried anything new.", "Albert Einstein" ],
+                        [ "Busy is a decision.", "Debbie Millman" ],
+                        [ "Continuous improvement is better than delayed perfection.", "Mark Twain" ],
+                        [ "Efficiency is doing things right. Effectiveness is doing the right things.", "Peter Drucker" ],
+                        [ "Everything you want is just outside your comfort zone.", "Robert Allen" ],
+                        [ "Focus on being productive instead of busy.", "Tim Ferriss" ],
+                        [ "If there are nine rabbits on the ground, if you want to catch one, just focus on one.", "Jack Ma" ],
+                        [ "If you spend too much time thinking about a thing, you'll never get it done.", "Bruce Lee" ],
+                        [ "It always seems impossible until it's done.", "Nelson Mandela" ],
+                        [ "It's not always that we need to do more but rather that we need to focus on less.", "Nathan W. Morris" ],
+                        [ "Life is short. Do stuff that matters.", "Siqi Chen" ],
+                        [ "[...] lots of people know what to do, but few people actually do what they know. Knowing is not enough!", "Tony Robbins" ],
+                        [ "Multitasking is a lie.", "Gary Keller" ],
+                        [ "Never give up on a dream just because of the time it will take to accomplish it. The time will pass anyway.", "Earl Nightingale" ],
+                        [ "Only put off until tomorrow what you are willing to die having left undone.", "Pablo Picasso" ],
+                        [ "Pick battles big enough to matter, small enough to win.", "Jonathan Kozol" ],
+                        [ "Procrastination is opportunity's assassin.", "Victor Kiam" ],
+                        [ "Procrastination is the fear of success. [...] Because success is heavy and carries a responsibility with it [...]", "Denis Waitley" ],
+                        [ "Productivity is never an accident.", "Paul J. Meyer" ],
+                        [ "The key is not to prioritize what's on your schedule, but to schedule your priorities.", "Stephen Covey" ],
+                        [ "The only way around is through.", "Robert Frost" ],
+                        [ "The secret of getting ahead is getting started.", "Mark Twain" ],
+                        [ "The secret of getting things done is to act!", "Dante Alighieri" ],
+                        [ "What we fear doing most is usually what we most need to do.", "Tim Ferriss" ],
+                        [ "Working on the right thing is probably more important than working hard.", "Caterina Fake" ],
+                        [ "You can do anything, but not everything.", "David Allen" ],
+                        [ "You don't have to see the whole staircase, just take the first step.", "Martin Luther King" ],
+                        [ "You don't need more time in your day. You need to decide.", "Seth Godin" ],
+                        [ "You may delay, but time will not.", "Benjamin Franklin" ],
+                        [ "Your mind is for having ideas, not holding them.", "David Allen" ],
+                    ].random()
+                    document.write("<blockquote>“" + quote[0] + "”<footer><cite>— " + quote[1] + "</cite></footer></blockquote>");
+                </script>
+            </main>
+            <footer>
+                <br />
+                <progress />
+            </footer>
+        </article>
+    {{ end }}
+    <br />
+    <footer>
+        <form method="get" action="/_new">
+            <input type="submit" value="+">
+        </form>
+    </footer>
+</main>
+
+{{ template "_footer.html" }}

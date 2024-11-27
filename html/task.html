@@ -1,0 +1,62 @@
+{{ template "_header.html" }}
+
+<main>
+    <article>
+        <header>
+            <div class="flex">
+                <p>
+                    {{ if .Parent }}
+                        <a href="/{{ .Parent.Slug }}">{{ .Parent.Title }}</a> /
+                    {{ end }}
+                    <b>{{ .Task.Title }}</b>
+                </p>
+                <a href="/{{ .Task.Slug }}/_edit"><kbd>edit</kbd></a>
+            </div>
+            <br />
+            <progress value="{{ .Task.Progress }}" min="0" max="100"></progress>
+        </header>
+        <main>
+            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+            <script>document.write(marked.parse("{{ .Task.Description }}"));</script>
+        </main>
+        {{ if .Children }}
+            <footer>
+                {{ $done := 0 }}
+                {{ range .Children }}
+                    {{ if eq .Progress 100 }}
+                        {{ $done = len (printf "a%*s" $done "") }}
+                    {{ end }}
+                {{ end }}
+                <p>󰥪 {{ $done }} / {{ len .Children }}</p>
+                <ul>
+                    {{ range .Children }}
+                        <li {{ if eq .Progress 100 }}class="done"{{ end }}>
+                            <div class="flex">
+                                <a href="/{{ .Slug }}">{{ .Title }}</a>
+                                <p>{{ .Progress }}%</p>
+                            </div>
+                        </li>
+                    {{ end }}
+                </ul>
+            </footer>
+        {{ end }}
+    </article>
+    <footer>
+        {{ if not .Children }}
+            {{ if lt .Task.Progress 100 }}
+                <form method="get" action="/{{ .Task.Slug }}/100">
+                    <input type="submit" value="Done" />
+                </form>
+            {{ else }}
+                <form method="get" action="/{{ .Task.Slug }}/0">
+                    <input type="submit" value="Reset" />
+                </form>
+            {{ end }}
+        {{ end }}
+        <form method="get" action="/{{ .Task.Slug }}/_new">
+            <input type="submit" value="+">
+        </form>
+    </footer>
+</main>
+
+{{ template "_footer.html" }}

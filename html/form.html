@@ -1,0 +1,47 @@
+{{ template "_header.html" }}
+
+<main>
+    <form method="post">
+    <article>
+        {{ if .Parent }}
+            <header>
+                <p><a href="/{{ .Parent.Slug }}">{{ .Parent.Title }}</a> / <i>new</i></p>
+            </header>
+        {{ else if .Task }}
+            <header class="flex">
+                <p><a href="/{{ .Task.Slug }}">{{ .Task.Title }}</a> / <i>new</i></p>
+                <a href="#" onClick="document.getElementById('modal').showModal()">
+                    <kbd>delete</kbd>
+                </a>
+                <dialog id="modal">
+                    <article>
+                        Delete <b>{{ .Task.Title }}</b>?
+                        <footer>
+                            <button class="secondary" onClick="document.getElementById('modal').close()" autofocus>Cancel</button>
+                            <button onClick="location.href='/{{ .Task.Slug }}/_delete'">Confirm</button>
+                        </footer>
+                    </article>
+                </dialog>
+            </header>
+        {{ end }}
+        <main>
+            {{ if .Task }}
+                <input type="text" name="title" placeholder="Title..." value="{{ .Task.Title }}" required/>
+                <textarea name="description" placeholder="Description...">{{ .Task.Description }}</textarea>
+            {{ else }}
+                <input type="text" name="title" placeholder="Title..." required/>
+                <textarea name="description" placeholder="Description..."></textarea>
+            {{ end }}
+        </main>
+    </article>
+    <footer>
+        {{ if .Task }}
+            <input type="submit" value="~" />
+        {{ else }}
+            <input type="submit" value="+" />
+        {{ end }}
+    </footer>
+    </form>
+</main>
+
+{{ template "_footer.html" }}
