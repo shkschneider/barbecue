@@ -62,14 +62,14 @@ func (d Database) getAll() (*[]Task, error) {
 	return &tasks, result.Error
 }
 
-func (d Database) getParent(task *Task) (*Task, error) {
+func (d Database) getParent(task Task) (*Task, error) {
 	var parent Task
 	result := d.Model(&Task{}).First(&parent, task.Super)
 	if result.Error != nil || parent.ID == 0 { return nil, result.Error }
 	return &parent, nil
 }
 
-func (d Database) getChildren(task *Task) (*[]Task, error) {
+func (d Database) getChildren(task Task) (*[]Task, error) {
 	var children []Task
 	result := d.Model(&Task{}).Where(Task { Super: &task.ID }).Order("progress").Find(&children)
 	if len(children) == 0 { return nil, result.Error }

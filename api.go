@@ -73,7 +73,7 @@ func NewApi(db *Database) (*Api, error) {
 func (api *Api) Run(addr string) {
 	api.HideBanner = true
 	api.HidePort = true
-	log.Info(addr)
+	log.Info("Listen", addr)
 	api.Logger.Fatal(api.Start(addr))
 }
 
@@ -91,7 +91,7 @@ type Template struct {
     templates *template.Template
 }
 
-func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+func (t Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return t.templates.ExecuteTemplate(w, name, data)
 }
 

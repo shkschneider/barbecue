@@ -1,8 +1,10 @@
 package main
 
 import(
+	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 )
 
@@ -35,45 +37,48 @@ func NewLog(writer io.Writer, level LogLevel, colors bool) {
 	log = Log { writer, level, colors }
 }
 
-func (l Log) log(lvl LogLevel, any interface{}) {
-	t := time.Now().Format(fmt.Sprintf("%s %s.000", time.DateOnly, time.TimeOnly))
+func (l Log) log(lvl LogLevel, any string) {
+	var buffer bytes.Buffer
 	if l.colors {
-		l.writer.Write([]byte(fmt.Sprintf("\033[%dm%s [%3s] %+v\033[0m\n", lvl.Color, t, lvl.Tag, any)))
-	} else {
-		l.writer.Write([]byte(fmt.Sprintf("%s [%3s] %+v\n", t, lvl.Tag, any)))
+		buffer.WriteString(fmt.Sprintf("\033[%dm", lvl.Color))
 	}
+	buffer.WriteString(fmt.Sprintf("%s [%3s] %s",
+		time.Now().Format(fmt.Sprintf("%s %s.000", time.DateOnly, time.TimeOnly)), lvl.Tag, any))
+	if l.colors {
+		buffer.WriteString(fmt.Sprintf("\033[0m"))
+	}
+	buffer.WriteString("\n")
+	l.writer.Write(buffer.Bytes())
+}
+
+func any(many interface{}) string {
+	any := fmt.Sprintf("%+v", many)
+	any = strings.TrimPrefix(any, "[")
+	any = strings.TrimSuffix(any, "]")
+	return any
 }
 
 func (l Log) Debug(many ...interface{}) {
-	for _, any := range many {
-		l.log(LogLevelDebug, any)
-	}
+	l.log(LogLevelDebug, any(many))
 }
 
 func (l Log) Info(many ...interface{}) {
-	for _, any := range many {
-		l.log(LogLevelInfo, any)
-	}
+	l.log(LogLevelInfo, any(many))
 }
 
 func (l Log) Warning(many ...interface{}) {
-	for _, any := range many {
-		l.log(LogLevelWarning, any)
-	}
+	l.log(LogLevelWarning, any(many))
 }
 
 func (l Log) Error(many ...interface{}) {
-	for _, any := range many {
-		l.log(LogLevelError, any)
-	}
+	l.log(LogLevelError, any(many))
 }
 
 func (l Log) Panic(many ...interface{}) {
+	l.log(LogLevelPanic, any(many))
 	if len(many) == 0 {
 		panic("!!!")
+	} else {
+		panic(any(many))
 	}
-	for i := 0 ; i < len(many) - 1 ; i++ {
-		l.log(LogLevelPanic, many[i])
-	}
-	panic(many[len(many) - 1])
 }

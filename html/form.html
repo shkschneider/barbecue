@@ -35,7 +35,11 @@
         </main>
     </article>
     <footer>
-        <input type="submit" value="+" />
+        {{ if .Task }}
+            <input type="submit" value="~" />
+        {{ else }}
+            <input type="submit" value="+" />
+        {{ end }}
     </footer>
     </form>
 </main>
