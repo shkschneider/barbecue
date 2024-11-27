@@ -45,7 +45,7 @@ func NewApi(db *Database) (*Api, error) {
 			if err := c.Bind(&apiRequest) ; err != nil {
 				return c.NoContent(http.StatusBadRequest)
 			}
-			return next(&LocalContext { c, apiRequest })
+			return next(&LocalContext { c, db, apiRequest })
 		}
 	})
 	api.Use(middleware.LoggerWithConfig(middleware.LoggerConfig {
@@ -77,28 +77,11 @@ func (api *Api) Run(addr string) {
 	api.Logger.Fatal(api.Start(addr))
 }
 
-// Template
-
-const (
-    TEMPLATES = "html/*.html"
-	tINDEX = "index.html"
-	tTASK = "task.html"
-	tFORM = "form.html"
-	tERROR = "error.html"
-)
-
-type Template struct {
-    templates *template.Template
-}
-
-func (t Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	return t.templates.ExecuteTemplate(w, name, data)
-}
-
 // LocalContext
 
 type LocalContext struct {
 	echo.Context
+	db *Database
 	apiRequest ApiRequest
 	// apiResponse ApiResponse
 }
@@ -117,4 +100,22 @@ func (c LocalContext) ko(code int) error {
 func (c LocalContext) redirect(uri string) error {
 	if len(uri) == 0 || !strings.HasPrefix(uri, "/") { uri = "/" }
 	return c.Redirect(http.StatusSeeOther, uri)
+}
+
+// Template
+
+const (
+    TEMPLATES = "html/*.html"
+	tINDEX = "index.html"
+	tTASK = "task.html"
+	tFORM = "form.html"
+	tERROR = "error.html"
+)
+
+type Template struct {
+    templates *template.Template
+}
+
+func (t Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.templates.ExecuteTemplate(w, name, data)
 }
