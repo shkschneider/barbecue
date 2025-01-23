@@ -1,19 +1,27 @@
 package main
 
 import (
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	"html/template"
-	"io"
-	"net/http"
-	"strings"
+	"gorm.io/gorm"
 )
 
-// Api
+type Task struct {
+	gorm.Model			`json:"-"`
+	Slug 		string 	`json:"slug",param:"slug"`
+	Title 		string 	`json:"title",form:"title"`
+	Description string 	`json:"description",form:"description"`
+	Progress	uint	`json:"progress",form:"progress"`
+	Super 		*uint	`json:"-"`
+}
 
 type (
-	Api struct {
-		*echo.Echo
+	Api interface {
+		Ok() error
+		Ko() error
+	}
+	ApiContext struct {
+		DB			*Database
+		Request		ApiRequest
+		Response	ApiResponse
 	}
 	ApiRequest struct {
 		Id			uint 	`param:"id"`
@@ -32,90 +40,3 @@ type (
 		Message		string
 	}
 )
-
-func NewApi(db *Database) (*Api, error) {
-	var api Api = Api { echo.New() }
-	api.Debug = DEBUG
-	// Middlewares
-	api.Pre(middleware.NonWWWRedirect())
-	api.Pre(middleware.RemoveTrailingSlash())
-	api.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			var apiRequest ApiRequest
-			if err := c.Bind(&apiRequest) ; err != nil {
-				return c.NoContent(http.StatusBadRequest)
-			}
-			return next(&LocalContext { c, db, apiRequest })
-		}
-	})
-	api.Use(middleware.LoggerWithConfig(middleware.LoggerConfig {
-		Skipper: middleware.DefaultSkipper,
-		Format: "${time_rfc3339} ${method} ${uri} [${status}] ${error}\n",
-	}))
-	// Rendering
-	api.Renderer = &Template {
-	    templates: template.Must(template.ParseGlob(TEMPLATES)),
-	}
-	api.HTTPErrorHandler = func(err error, c echo.Context) {
-		code := http.StatusNotAcceptable
-		if he, ok := err.(*echo.HTTPError) ; ok {
-			code = he.Code
-		}
-		c.Render(code, tERROR, struct{}{})
-	}
-	// Routes
-	api.File("/favicon-light.ico", "html/favicon-light.ico")
-	api.File("/favicon-dark.ico", "html/favicon-dark.ico")
-	api.NewRoutes(db)
-	return &api, nil
-}
-
-func (api *Api) Run(addr string) {
-	api.HideBanner = true
-	api.HidePort = true
-	log.Info("Listen", addr)
-	api.Logger.Fatal(api.Start(addr))
-}
-
-// LocalContext
-
-type LocalContext struct {
-	echo.Context
-	db *Database
-	apiRequest ApiRequest
-	// apiResponse ApiResponse
-}
-
-func (c LocalContext) ok(code int, template string, data interface{}) error {
-	return c.Render(code, template, data)
-}
-
-func (c LocalContext) ko(code int) error {
-	return c.Render(code, tERROR, ApiError {
-		Code: code,
-		Message: http.StatusText(code),
-	})
-}
-
-func (c LocalContext) redirect(uri string) error {
-	if len(uri) == 0 || !strings.HasPrefix(uri, "/") { uri = "/" }
-	return c.Redirect(http.StatusSeeOther, uri)
-}
-
-// Template
-
-const (
-    TEMPLATES = "html/*.html"
-	tINDEX = "index.html"
-	tTASK = "task.html"
-	tFORM = "form.html"
-	tERROR = "error.html"
-)
-
-type Template struct {
-    templates *template.Template
-}
-
-func (t Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	return t.templates.ExecuteTemplate(w, name, data)
-}

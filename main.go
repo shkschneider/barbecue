@@ -2,12 +2,12 @@ package main
 
 import (
 	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"os"
 )
 
 const NAME = "barbecue"
 var VERSIONS = []string {
+	"3.0", // cli
 	"2.8", // rc
 	"2.7", // polish
 	"2.6", // refactor
@@ -21,15 +21,6 @@ var VERSIONS = []string {
 }
 var DEBUG bool = false
 
-type Task struct {
-	gorm.Model			`json:"-"`
-	Slug 		string 	`json:"slug",param:"slug"`
-	Title 		string 	`json:"title",form:"title"`
-	Description string 	`json:"description",form:"description"`
-	Progress	uint	`json:"progress",form:"progress"`
-	Super 		*uint	`json:"-"`
-}
-
 func main() {
 	DEBUG = (os.Getenv("DEBUG") == "true")
 	if DEBUG {
@@ -42,10 +33,19 @@ func main() {
 	if err != nil {
 		log.Panic("database")
 	}
-	log.Info("Api...")
-	api, err := NewApi(db)
-	if err != nil {
-		log.Panic("api")
+	if len(os.Args) > 1 {
+		log.Info("Cli...")
+		cli, err := NewCli(db)
+		if err != nil {
+			log.Panic("cli")
+		}
+		cli.Run()
+	} else {
+		log.Info("Http...")
+		http, err := NewHttp(db)
+		if err != nil {
+			log.Panic("http")
+		}
+		http.Run("0.0.0.0:8080")
 	}
-	api.Run("0.0.0.0:8080")
 }
