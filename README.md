@@ -1,10 +1,8 @@
 # barbecue
 
-> Simple tasks & subtasks without authentication
+> Simple tasks & subtasks!
 
-This is a dead-simple task manager.
-
-- simple and lightweight (PicoCSS, minimal JavaScript)
+- CLI/HTTP interfaces (PicoCSS, minimal JavaScript)
 - golang + sqlite3
 - infinite subtasks
 - completion percentage

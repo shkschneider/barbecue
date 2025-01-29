@@ -3,10 +3,15 @@ package main
 import (
 	"gorm.io/driver/sqlite"
 	"os"
+	"github.com/urfave/cli/v2"
+	"barbecue/cmd"
+	"barbecue/core"
+	"barbecue/data"
 )
 
 const NAME = "barbecue"
 var VERSIONS = []string {
+	"4.0", // modularized
 	"3.0", // cli
 	"2.8", // rc
 	"2.7", // polish
@@ -19,33 +24,28 @@ var VERSIONS = []string {
 	"2.0", // golang with echo, html/template, sqlite
  	"1.0", // html5 plain javascript, subtasks and progress
 }
-var DEBUG bool = false
 
 func main() {
-	DEBUG = (os.Getenv("DEBUG") == "true")
-	if DEBUG {
-		NewLog(os.Stderr, LogLevelDebug, true)
+	core.Context.Debug = (os.Getenv("DEBUG") == "true")
+	if core.Context.Debug {
+		core.Context.Logger = core.NewLogger(os.Stderr, core.LevelDebug)
 	} else {
-		NewLog(os.Stderr, LogLevelInfo, true)
+		core.Context.Logger = core.NewLogger(os.Stderr, core.LevelInfo)
 	}
-	log.Info("Database...")
-	db, err := NewDatabase(sqlite.Open(NAME + ".sqlite"))
-	if err != nil {
-		log.Panic("database")
-	}
-	if len(os.Args) > 1 {
-		log.Info("Cli...")
-		cli, err := NewCli(db)
-		if err != nil {
-			log.Panic("cli")
-		}
-		cli.Run()
+	if db, err := data.New(sqlite.Open(NAME + ".sqlite"), false) ; err != nil {
+		core.Context.Logger.Panic(err)
 	} else {
-		log.Info("Http...")
-		http, err := NewHttp(db)
-		if err != nil {
-			log.Panic("http")
-		}
-		http.Run("0.0.0.0:8080")
+		core.Context.Database = db
 	}
+	(&cli.App {
+		Name: "barbecue",
+		Usage: "...",
+		Commands: []*cli.Command {
+			cmd.Add,
+			cmd.List,
+			cmd.Remove,
+			cmd.Serve,
+			cmd.Progress,
+		},
+	}).Run(os.Args)
 }
