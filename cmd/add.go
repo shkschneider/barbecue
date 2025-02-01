@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"github.com/urfave/cli/v2"
 	"barbecue/api"
 	"barbecue/core"
@@ -10,7 +9,7 @@ import (
 
 var Add = &cli.Command {
 	Name: "add",
-	Usage: "...",
+	Usage: "adds a task",
 	Action: add,
 	ArgsUsage: "<title> [description]",
 	Flags: []cli.Flag {
@@ -18,24 +17,31 @@ var Add = &cli.Command {
 			Name:  "parent",
 			Aliases: []string { "p" },
 			Value: "",
-			Usage: "...",
+			Usage: "<idOrSlug>",
 		},
 	},
 }
 
 func add(cli *cli.Context) error {
 	out := driver.NewStdoutDriver()
-	tasks, err := api.Add(cli.Args().Get(0), cli.Args().Get(1))
+	title := cli.Args().Get(0)
+	description := cli.Args().Get(1)
+	tasks, err := api.Add(title, description)
 	if err != nil {
+		core.Log.Error("Add", err)
 		return err
 	}
+	task := (*tasks)[0]
 	if len(cli.String("parent")) > 0 {
 		parents, err := api.GetByIdOrSlug(cli.String("parent"))
-		if err == nil {
-			(*tasks)[0].Super = &((*parents)[0].ID)
-			core.Context.Database.Update((*tasks)[0])
+		if err != nil {
+			core.Log.Error("Add", err)
+			return err
 		}
+		parent := (*parents)[0]
+		task.Super = &parent.ID
+		core.Database.Update(task)
 	}
-	out.Output(&(*tasks)[0])
-	return errors.New("<title> [description]")
+	out.Out(driver.NewStdoutDriverData(task))
+	return nil
 }

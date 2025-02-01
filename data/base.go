@@ -1,28 +1,49 @@
 package data
 
 import (
+	"os"
+	"strings"
+	"path/filepath"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	// "barbecue/core"
+	"gorm.io/driver/sqlite"
 )
 
 type Database struct {
-	Orm	*gorm.DB
+	Path	string
+	Orm		*gorm.DB
 }
 
-func New(d gorm.Dialector, debug bool) (*Database, error) {
-	config := gorm.Config {
-		Logger: logger.Default.LogMode(logger.Silent),
+func NewDatabase(path string, name string) (*Database, error) {
+	// path
+	home, err := os.UserHomeDir()
+	if err != nil {
+		path = name + ".sqlite"
+	} else if len(path) == 0 {
+		path = name + ".sqlite"
+		if err == nil {
+	    	path = filepath.Join(home, ".local", "state", name + ".sqlite")
+		} else {
+			path = name + ".sqlite"
+		}
+	} else {
+		path = strings.Replace(path, "~", home, 1)
 	}
-	orm, err := gorm.Open(d, &config)
+	// orm
+	driver := sqlite.Open(path)
+	orm, err := gorm.Open(driver, &gorm.Config {
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		return nil, err
 	}
+	// db
 	var db Database = Database {
+		Path: path,
 		Orm: orm,
 	}
 	orm.AutoMigrate(&Task{})
-	if debug == true {
+	if os.Getenv("DEBUG") == "true" {
 		var task Task
 		var tasks []Task
 		orm.Session(&gorm.Session { AllowGlobalUpdate: true }).Delete(&Task{})
@@ -36,9 +57,6 @@ func New(d gorm.Dialector, debug bool) (*Database, error) {
 		task.Description = "See its [definition](/definition)..."
 		db.Update(task)
 		orm.Model(&Task{}).Find(&tasks)
-		// for _, task := range tasks {
-		// 	log.Debug(fmt.Sprintf("#%d %s", task.ID, task.Slug))
-		// }
 	}
 	return &db, nil
 }

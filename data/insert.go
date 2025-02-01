@@ -19,12 +19,3 @@ func (db *Database) Insert(slug string, title string, description string) (Task,
 	result := db.Orm.Create(&task)
 	return task, result.Error
 }
-
-func (db *Database) Update(task Task) error {
-	result := db.Orm.Save(&task)
-	return result.Error
-}
-
-func (db *Database) Delete(task Task) {
-	db.Orm.Delete(&task)
-}

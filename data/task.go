@@ -15,6 +15,18 @@ type Task struct {
 	Super 			*uint	`json:"-"`
 }
 
+func NewTask() *Task {
+	return &Task{}
+}
+
+func NewTasks(tasks ...Task) *[]Task {
+	var data []Task
+	for _, task := range tasks {
+		data = append(data, task)
+	}
+	return &data
+}
+
 // "github.com/gosimple/slug"
 func Slugify(s string) string {
 	s = strings.ToLower(s)

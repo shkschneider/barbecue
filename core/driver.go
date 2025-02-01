@@ -1,5 +1,6 @@
 package core
 
 type Driver interface {
-	Output()
+	Out(interface {}) error
+	Err(int, string) error
 }

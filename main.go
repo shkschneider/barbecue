@@ -1,8 +1,9 @@
 package main
 
 import (
-	"gorm.io/driver/sqlite"
+	"fmt"
 	"os"
+	"time"
 	"github.com/urfave/cli/v2"
 	"barbecue/cmd"
 	"barbecue/core"
@@ -11,6 +12,11 @@ import (
 
 const NAME = "barbecue"
 var VERSIONS = []string {
+	"4.5", // rc with go-task
+	"4.4", // log levels
+	"4.3", // db location
+	"4.2", // errors
+	"4.1", // drivers
 	"4.0", // modularized
 	"3.0", // cli
 	"2.8", // rc
@@ -26,26 +32,55 @@ var VERSIONS = []string {
 }
 
 func main() {
-	core.Context.Debug = (os.Getenv("DEBUG") == "true")
-	if core.Context.Debug {
-		core.Context.Logger = core.NewLogger(os.Stderr, core.LevelDebug)
-	} else {
-		core.Context.Logger = core.NewLogger(os.Stderr, core.LevelInfo)
+	commands := []*cli.Command {
+		// cli
+		cmd.Add,
+		cmd.List,
+		cmd.Progress,
+		cmd.Remove,
+		cmd.Show,
+		// http
+		cmd.Serve,
 	}
-	if db, err := data.New(sqlite.Open(NAME + ".sqlite"), false) ; err != nil {
-		core.Context.Logger.Panic(err)
-	} else {
-		core.Context.Database = db
+	flags := []cli.Flag{
+		&cli.StringFlag {
+			Name: "database",
+			Value: "~/.local/state/" + NAME + ".sqlite",
+		},
+		&cli.StringFlag { Name: "log", Value: "error" },
+	}
+	before := func(cli *cli.Context) error {
+		// log
+		switch log := cli.String("log") ; log {
+			case "debug":
+				core.Log = core.NewLogger(os.Stderr, core.LevelDebug)
+			case "info":
+				core.Log = core.NewLogger(os.Stderr, core.LevelInfo)
+			case "warning":
+				core.Log = core.NewLogger(os.Stderr, core.LevelWarning)
+			case "error":
+				core.Log = core.NewLogger(os.Stderr, core.LevelError)
+			default:
+				core.Log = core.NewLogger(os.Stderr, core.LevelPanic)
+		}
+		core.Log.Info(fmt.Sprintf("%s v%s", NAME, VERSIONS[0]))
+		// db
+		var err error
+		core.Database, err = data.NewDatabase(cli.String("database"), NAME)
+		if err != nil {
+			core.Log.Panic(err)
+			return err
+		}
+		core.Log.Info(core.Database.Path)
+		return nil
 	}
 	(&cli.App {
-		Name: "barbecue",
-		Usage: "...",
-		Commands: []*cli.Command {
-			cmd.Add,
-			cmd.List,
-			cmd.Remove,
-			cmd.Serve,
-			cmd.Progress,
-		},
+		Name: NAME,
+		Version: "v" + VERSIONS[0],
+        Compiled: time.Now(),
+		Usage: "easy tasks and subtasks !",
+		Commands: commands,
+		Flags: flags,
+		Before: before,
 	}).Run(os.Args)
 }

@@ -10,14 +10,11 @@ import (
 )
 
 type HtmlDriver struct {
-	core.Driver
-    Templates *template.Template
+	Echo		echo.Context
 }
 
-func NewHtmlDriver() *HtmlDriver {
-	return &HtmlDriver {
-	    Templates: template.Must(template.ParseGlob("html/*.html")),
-	}
+func NewHtmlDriver(ctx echo.Context) core.Driver {
+	return HtmlDriver { ctx }
 }
 
 const (
@@ -27,23 +24,54 @@ const (
 	T_ERROR = "error.html"
 )
 
-func (d *HtmlDriver) Render(w io.Writer, name string, data interface{}, ctx echo.Context) error {
-	return d.Templates.ExecuteTemplate(w, name, data)
+func (d HtmlDriver) redirect(uri string) error {
+	if len(uri) == 0 || !strings.HasPrefix(uri, "/") { uri = "/" }
+	return d.Echo.Redirect(http.StatusSeeOther, uri)
 }
 
-func (d *HtmlDriver) Ok(ctx echo.Context, code int, template string, data interface{}) error {
-	return ctx.Render(code, template, data)
+func (d HtmlDriver) Out(data interface{}) error {
+	if data.(HtmlDriverData).redirect {
+		return d.redirect(data.(HtmlDriverData).template)
+	}
+	return d.Echo.Render(data.(HtmlDriverData).code, data.(HtmlDriverData).template, data.(HtmlDriverData).data)
 }
 
-func (d *HtmlDriver) Ko(ctx echo.Context, code int) error {
-	return ctx.Render(code, T_ERROR, struct { Code int ; Message string } {
+func (d HtmlDriver) Err(code int, msg string) error {
+	return d.Echo.Render(code, T_ERROR, struct { Code int ; Message string } {
 		Code: code,
 		Message: http.StatusText(code),
 	})
 }
 
-func (d *HtmlDriver) Redirect(ctx echo.Context, uri string) error {
-	if len(uri) == 0 || !strings.HasPrefix(uri, "/") { uri = "/" }
-	return ctx.Redirect(http.StatusSeeOther, uri)
-	return nil
+// Data
+
+type HtmlDriverData struct {
+	code		int
+	redirect	bool
+	template	string
+	data		interface{}
+}
+
+func NewHtmlDriverData(code int, template string, data interface{}) HtmlDriverData {
+	return HtmlDriverData { code, false, template, data }
+}
+
+func NewHtmlDriverRedirect(uri string) HtmlDriverData {
+	return HtmlDriverData{ http.StatusSeeOther, true, uri, nil }
+}
+
+// Renderer
+
+type HtmlDriverRenderer struct {
+    Templates	*template.Template
+}
+
+func NewHtmlDriverRenderer() HtmlDriverRenderer {
+	return HtmlDriverRenderer {
+	    Templates: template.Must(template.ParseGlob("html/*.html")),
+	}
+}
+
+func (r HtmlDriverRenderer) Render(w io.Writer, name string, data interface{}, ctx echo.Context) error {
+	return r.Templates.ExecuteTemplate(w, name, data)
 }

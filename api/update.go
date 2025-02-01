@@ -5,7 +5,11 @@ import (
 	"barbecue/data"
 )
 
-func Update(task data.Task) (*[]data.Task, error) {
-	err := core.Context.Database.Update(task)
-	return &[]data.Task { task }, err
+func Update(task data.Task) ([]data.Task, error) {
+	err := core.Database.Update(task)
+	if err != nil {
+		core.Log.Debug("Update", err)
+		return nil, err
+	}
+	return *data.NewTasks(task), nil
 }

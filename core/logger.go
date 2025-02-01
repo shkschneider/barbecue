@@ -9,16 +9,17 @@ import(
 )
 
 type Level struct {
+	Id int
 	Tag string
 	Color uint8
 }
 
 var (
-	LevelDebug 	 = Level { "DBG", 34 }
-	LevelInfo 	 = Level { "INF", 32 }
-	LevelWarning = Level { "WRN", 33 }
-	LevelError 	 = Level { "ERR", 31 }
-	LevelPanic 	 = Level { "WTF", 35 }
+	LevelDebug 	 = Level { 1, "DBG", 34 }
+	LevelInfo 	 = Level { 2, "INF", 32 }
+	LevelWarning = Level { 3, "WRN", 33 }
+	LevelError 	 = Level { 4, "ERR", 31 }
+	LevelPanic 	 = Level { 5, "WTF", 35 }
 )
 
 type Logger struct {
@@ -33,6 +34,7 @@ func NewLogger(writer io.Writer, level Level) *Logger {
 }
 
 func (l *Logger) log(lvl Level, any string) {
+	if lvl.Id < l.level.Id { return }
 	var buffer bytes.Buffer
 	if l.colors {
 		buffer.WriteString(fmt.Sprintf("\033[%dm", lvl.Color))

@@ -7,50 +7,68 @@ import (
 	"barbecue/data"
 )
 
-type StdoutDriver struct {
-	core.Driver
+type StdoutDriver struct {}
+
+func NewStdoutDriver() core.Driver {
+	return StdoutDriver{}
 }
 
-func NewStdoutDriver() *StdoutDriver {
-	return &StdoutDriver{}
-}
-
-func output(depth uint, task *data.Task) {
-	var p rune
-	if task.Progress == 0 {
-		p = 'x'
-	} else if task.Progress == 100 {
-		p = '✓'
-	} else {
-		p = '…'
-	}
+func single(depth uint, task *data.Task) {
 	var h string
 	if depth == 0 {
 		h = ""
 	} else {
-		h = fmt.Sprintf("%s- ", strings.Repeat(" ", int(depth - 1) * 2))
+		h = strings.Repeat(" ", int(depth))
 	}
-	fmt.Printf("%s#%d [%c %d%%] '%s'\n", h, task.ID, p, task.Progress, task.Slug)
-	// fmt.Printf(
-	// 	"%s#%v '%s' %d%% \"%s\" \"\"\"%s\"\"\"\n",
-	// 	strings.Repeat("-", int(depth)),
-	// 	task.ID,
-	// 	task.Slug,
-	// 	task.Progress,
-	// 	task.Title,
-	// 	task.Description,
-	// )
+	var p string
+	if task.Progress == 0 {
+		p = "x"
+	} else if task.Progress == 100 {
+		p = "✓"
+	} else {
+		p = "…"
+	}
+	fmt.Printf("\t%s%s %d %d%% '%s'\n", h, p, task.ID, task.Progress, task.Slug)
 }
 
-func (d *StdoutDriver) Output(task *data.Task) {
-	output(0, task)
-}
-
-func (d *StdoutDriver) OutputRecursive(depth uint, task *data.Task) {
-	output(depth, task)
-	tasks, err := core.Context.Database.GetChildren(*task)
+func recursive(depth uint, task *data.Task) {
+	single(depth, task)
+	tasks, err := core.Database.GetChildren(*task)
 	if err != nil || tasks == nil { return }
 	for _, task := range *tasks {
-		d.OutputRecursive(depth + 1, &task)
+		if depth == 0 {
+			recursive(uint(len(fmt.Sprintf("%v", *task.Super)) + 1), &task)
+		} else {
+			recursive(depth + uint(len(fmt.Sprintf("%v", *task.Super)) + 1), &task)
+		}
 	}
+}
+
+func (d StdoutDriver) Out(data interface{}) error {
+	tasks := data.(StdoutDriverData).tasks
+	if len(tasks) == 0 { return nil }
+	fmt.Println("")
+	for i, task := range tasks {
+		if i > 0 {
+			fmt.Println("")
+		}
+		recursive(0, &task)
+	}
+	fmt.Println("")
+	return nil
+}
+
+func (d StdoutDriver) Err(code int, msg string) error {
+	core.Log.Debug("ERR", code, msg)
+	return nil
+}
+
+// Data
+
+type StdoutDriverData struct {
+	tasks	[]data.Task
+}
+
+func NewStdoutDriverData(tasks ...data.Task) StdoutDriverData {
+	return StdoutDriverData { *data.NewTasks(tasks...) }
 }

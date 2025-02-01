@@ -1,62 +1,39 @@
 package cmd
 
 import (
-	"errors"
 	"github.com/urfave/cli/v2"
 	"barbecue/api"
 	"barbecue/core"
-	"barbecue/data"
 	"barbecue/driver"
 )
 
 var Remove = &cli.Command {
 	Name: "remove",
-	Usage: "...",
+	Usage: "removes a task (and subtasks!)",
 	ArgsUsage: "<idOrSlug>",
 	Action: remove,
-	Flags: []cli.Flag {
-		&cli.BoolFlag {
-			Name:  "children",
-			Value: false,
-			Usage: "...",
-		},
-	},
-}
-
-func removeRecursive(task data.Task) {
-	out := driver.NewStdoutDriver()
-	children, err := api.GetChildren(task)
-	if err == nil {
-		for _, child := range *children {
-			out.Output(&child)
-		}
-	}
+	Flags: []cli.Flag{},
 }
 
 func remove(cli *cli.Context) error {
 	out := driver.NewStdoutDriver()
 	tasks, err := api.GetByIdOrSlug(cli.Args().Get(0))
 	if err != nil {
-		core.Context.Logger.Error("not found")
+		core.Log.Error("Remove", err)
 		return err
-	}
-	if tasks == nil || len(*tasks) == 0 {
-		core.Context.Logger.Error("nothing to remove")
-		return errors.New("nothing to remove")
+	} else if tasks == nil {
+		core.Log.Error("Remove", core.ErrNothing)
+		return core.ErrNothing
 	}
 	if len(*tasks) > 1 {
 		for _, task := range *tasks {
-			out.Output(&task)
+			out.Out(driver.NewStdoutDriverData(task))
 		}
-		core.Context.Logger.Warning("too ambiguous")
-		return nil
+		core.Log.Error("Remove", core.ErrAmbiguous)
+		return core.ErrAmbiguous
 	}
 	task := (*tasks)[0]
-	out.Output(&task)
-	if cli.Bool("children") == true {
-		api.RemoveRecursive(task)
-	} else {
-		api.Remove(task)
-	}
+	api.RemoveRecursive(task)
+	out.Out(driver.NewStdoutDriverData(task))
 	return nil
 }

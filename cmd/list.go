@@ -1,48 +1,32 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/urfave/cli/v2"
 	"barbecue/api"
+	"barbecue/core"
 	"barbecue/driver"
 )
 
 var List = &cli.Command {
 	Name: "list",
-	Usage: "...",
+	Usage: "lists all tasks (recursively)",
 	Action: list,
-	ArgsUsage: "[isOrSlug ...]",
-	Flags: []cli.Flag {
-		&cli.BoolFlag {
-			Name:  "recursive",
-			Aliases: []string { "r" },
-			Value: false,
-			Usage: "...",
-		},
-	},
+	ArgsUsage: "",
+	Flags: []cli.Flag{},
 }
 
 func list(cli *cli.Context) error {
 	out := driver.NewStdoutDriver()
-	if cli.NArg() == 0 {
-		tasks, err := api.GetParents()
-		for _, task := range *tasks {
-			if task.Progress < 100 && cli.Bool("recursive") {
-				out.OutputRecursive(0, &task)
-			} else {
-				out.Output(&task)
-			}
-		}
+	tasks, err := api.GetParents()
+	if err != nil {
+		core.Log.Error("List", err)
 		return err
-	} else {
-		tasks, err := api.GetByIdOrSlug(cli.Args().Get(0))
-		for _, task := range *tasks {
-			if cli.Bool("recursive") {
-				out.OutputRecursive(0, &task)
-			} else {
-				out.Output(&task)
-			}
-		}
-		return err
+	} else if tasks == nil {
+		core.Log.Error("List", core.ErrNothing)
+		return core.ErrNothing
 	}
+	out.Out(driver.NewStdoutDriverData((*tasks)...))
+	core.Log.Info(fmt.Sprintf("%d task(s)", len(*tasks)))
 	return nil
 }

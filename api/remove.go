@@ -5,17 +5,21 @@ import (
 	"barbecue/data"
 )
 
-func RemoveRecursive(task data.Task) {
+func RemoveRecursive(task data.Task) error {
 	children, err := GetChildren(task)
-	if err == nil {
+	if err != nil {
+		core.Log.Debug("RemoveRecursive", err)
+		return err
+	} else if children != nil {
 		for _, child := range *children {
 			RemoveRecursive(child)
 		}
 	}
 	Remove(task)
+	return nil
 }
 
 func Remove(task data.Task) {
-	core.Context.Database.Delete(task)
+	core.Database.Delete(task)
 }
 
