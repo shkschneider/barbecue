@@ -15,16 +15,6 @@ func NewStdoutDriver() core.Driver {
 	return StdoutDriver{}
 }
 
-// func clamp(value, low, high int) int {
-// 	if value < low {
-// 		return low
-// 	}
-// 	if value > high {
-// 		return high
-// 	}
-// 	return value
-// }
-
 func single(depth uint, task *data.Task) {
 	var fg *color.Color
 	fmt.Printf("\t")
@@ -47,8 +37,6 @@ func single(depth uint, task *data.Task) {
 	fg.Print(int(task.Progress))
 	fmt.Print("%")
 	fmt.Print("]")
-	// fg.Printf("%-5s", strings.Repeat("-", clamp(int(task.Progress), 0, 50) / 10))
-	// fg.Printf("%-5s", strings.Repeat("-", clamp(int(task.Progress) - 50, 0, 50) / 10))
 	fmt.Print(" ")
 	fmt.Print("#")
 	fg.Printf("%d", task.ID)
