@@ -3,6 +3,7 @@ module barbecue
 go 1.23.3
 
 require (
+	github.com/fatih/color v1.18.0
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/urfave/cli/v2 v2.27.5
 	gorm.io/driver/sqlite v1.5.6

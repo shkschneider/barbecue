@@ -5,6 +5,8 @@ import (
 	"strings"
 	"barbecue/core"
 	"barbecue/data"
+
+	"github.com/fatih/color"
 )
 
 type StdoutDriver struct {}
@@ -13,22 +15,49 @@ func NewStdoutDriver() core.Driver {
 	return StdoutDriver{}
 }
 
+// func clamp(value, low, high int) int {
+// 	if value < low {
+// 		return low
+// 	}
+// 	if value > high {
+// 		return high
+// 	}
+// 	return value
+// }
+
 func single(depth uint, task *data.Task) {
-	var h string
-	if depth == 0 {
-		h = ""
-	} else {
-		h = strings.Repeat(" ", int(depth))
-	}
-	var p string
+	var fg *color.Color
+	fmt.Printf("\t")
 	if task.Progress == 0 {
-		p = "x"
+		fg = color.New(color.FgRed, color.Bold)
+		fg.Print("x")
 	} else if task.Progress == 100 {
-		p = "✓"
+		fg = color.New(color.FgGreen, color.Bold)
+		fg.Print("✓")
 	} else {
-		p = "…"
+		fg = color.New(color.FgYellow, color.Bold)
+		fg.Print("…")
 	}
-	fmt.Printf("\t%s%s %d %d%% '%s'\n", h, p, task.ID, task.Progress, task.Slug)
+	fmt.Print(" ")
+	fmt.Print("[")
+	pc := int(task.Progress) / 10
+	fg.Print(strings.Repeat("-", pc))
+	fmt.Print(strings.Repeat(" ", 3 - len(fmt.Sprintf("%d", int(task.Progress)))))
+	 fmt.Print(strings.Repeat(" ", 10 - pc))
+	fg.Print(int(task.Progress))
+	fmt.Print("%")
+	fmt.Print("]")
+	// fg.Printf("%-5s", strings.Repeat("-", clamp(int(task.Progress), 0, 50) / 10))
+	// fg.Printf("%-5s", strings.Repeat("-", clamp(int(task.Progress) - 50, 0, 50) / 10))
+	fmt.Print(" ")
+	fmt.Print("#")
+	fg.Printf("%d", task.ID)
+	fmt.Print(" ")
+	fmt.Print("'")
+	color.New(color.FgBlue, color.Bold).Printf("%s", task.Slug)
+	fmt.Print("'")
+	fmt.Print(" ")
+	fmt.Print("\n")
 }
 
 func recursive(depth uint, task *data.Task) {
@@ -36,11 +65,7 @@ func recursive(depth uint, task *data.Task) {
 	tasks, err := core.Database.GetChildren(*task)
 	if err != nil || tasks == nil { return }
 	for _, task := range *tasks {
-		if depth == 0 {
-			recursive(uint(len(fmt.Sprintf("%v", *task.Super)) + 1), &task)
-		} else {
-			recursive(depth + uint(len(fmt.Sprintf("%v", *task.Super)) + 1), &task)
-		}
+		recursive(depth + uint(len(fmt.Sprintf("%v", *task.Super)) + 1), &task)
 	}
 }
 
