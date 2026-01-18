@@ -18,9 +18,17 @@ func GetSlug(ctx echo.Context) error {
 	task := (*tasks)[0]
 	parent, _ := api.GetParent(task)
 	children, _ := api.GetChildren(task)
-	return out.Out(driver.NewHtmlDriverData(http.StatusFound, driver.T_TASK, ApiResponse {
-		Parent: parent,
-		Task: &task,
-		Children: children,
-	}))
+	if len(*children) > 0 {
+		return out.Out(driver.NewHtmlDriverData(http.StatusFound, driver.T_TASK, ApiResponse {
+			Parent: parent,
+			Task: &task,
+			Children: children,
+		}))
+	} else {
+		return out.Out(driver.NewHtmlDriverData(http.StatusFound, driver.T_TASK, ApiResponse {
+			Parent: parent,
+			Task: &task,
+			Children: nil,
+		}))
+	}
 }
