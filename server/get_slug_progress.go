@@ -1,6 +1,7 @@
 package server
 
 import (
+	"math"
 	"net/http"
 	"strconv"
 	"github.com/labstack/echo/v4"
@@ -19,19 +20,21 @@ func GetSlugProgress(ctx echo.Context) error {
 	}
 	task := (*tasks)[0]
 	if pc, err := strconv.ParseUint(ctx.Param("progress"), 10, 16) ; err == nil {
-		if pc <= 0 {
-			task.Progress = 0
-		} else if pc >= 100 {
-			task.Progress = 100
-		} else {
-			task.Progress = uint(pc)
-		}
+		task.Progress = uint(math.Max(0, math.Min(100, float64(pc))))
 	}
 	if err := core.Database.Update(task) ; err != nil {
 		core.Log.Debug("GetSlugProgress", err)
 		return out.Err(http.StatusInternalServerError, "Database")
 	}
 	parent, err := api.GetParent(task)
+	if err != nil {
+		core.Log.Debug("GetSlugProgress", err)
+		return out.Out(driver.NewHtmlDriverRedirect("/" + task.Slug))
+	} else if parent == nil {
+		core.Log.Debug("GetSlugProgress", "GetParent")
+		return out.Out(driver.NewHtmlDriverRedirect("/" + task.Slug))
+	}
+	parent, err = api.GetById(parent.ID)
 	if err != nil {
 		core.Log.Debug("GetSlugProgress", err)
 		return out.Out(driver.NewHtmlDriverRedirect("/" + task.Slug))
