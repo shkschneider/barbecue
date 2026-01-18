@@ -17,8 +17,8 @@
                     <article>
                         Delete <b>{{ .Task.Title }}</b>?
                         <footer>
-                            <button class="secondary" onClick="document.getElementById('modal').close()" autofocus>Cancel</button>
-                            <button onClick="location.href='/{{ .Task.Slug }}/_delete'">Confirm</button>
+                            <button type="button" class="secondary" onClick="document.getElementById('modal').close()" autofocus>Cancel</button>
+                            <button type="button" onClick="location.href='/{{ .Task.Slug }}/_delete'">Confirm</button>
                         </footer>
                     </article>
                 </dialog>

@@ -33,7 +33,7 @@ func remove(cli *cli.Context) error {
 		return core.ErrAmbiguous
 	}
 	task := (*tasks)[0]
-	api.RemoveRecursive(task)
+	api.Remove(task)
 	out.Out(driver.NewStdoutDriverData(task))
 	return nil
 }
