@@ -19,7 +19,7 @@
             <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
             <script>document.write(marked.parse("{{ .Task.Description }}"));</script>
         </main>
-        {{ if .Children }}
+        {{ if gt (len .Children) 0 }}
             <footer>
                 <p></p>
                 <ul>
