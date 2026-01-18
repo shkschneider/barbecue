@@ -21,13 +21,7 @@
         </main>
         {{ if .Children }}
             <footer>
-                {{ $done := 0 }}
-                {{ range .Children }}
-                    {{ if eq .Progress 100 }}
-                        {{ $done = len (printf "a%*s" $done "") }}
-                    {{ end }}
-                {{ end }}
-                <p>󰥪 {{ $done }} / {{ len .Children }}</p>
+                <p></p>
                 <ul>
                     {{ range .Children }}
                         <li {{ if eq .Progress 100 }}class="done"{{ end }}>
