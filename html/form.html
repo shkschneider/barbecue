@@ -5,11 +5,11 @@
     <article>
         {{ if .Parent }}
             <header>
-                <p><a href="/{{ .Parent.Slug }}">{{ .Parent.Title }}</a> / <i>new</i></p>
+                <p class="bold"><a href="/{{ .Parent.Slug }}">{{ .Parent.Title }}</a> / <i>new</i></p>
             </header>
         {{ else if .Task }}
             <header class="flex">
-                <p><a href="/{{ .Task.Slug }}">{{ .Task.Title }}</a> / <i>new</i></p>
+                <p class="bold"><a href="/{{ .Task.Slug }}">{{ .Task.Title }}</a> / <i>new</i></p>
                 <a href="#" onClick="document.getElementById('modal').showModal()">
                     <kbd>delete</kbd>
                 </a>
