@@ -17,7 +17,12 @@ func GetSlugEdit(ctx echo.Context) error {
 		return out.Err(http.StatusNotFound, "NotFound")
 	}
 	task := (*tasks)[0]
+	children, err := api.GetChildren(task)
+	if err != nil {
+		core.Log.Debug("GetSlugEdit.GetChildren", err)
+	}
 	return out.Out(driver.NewHtmlDriverData(http.StatusFound, driver.T_FORM, ApiResponse {
 		Task: &task,
+		Children: children,
 	}))
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"strconv"
 	"github.com/labstack/echo/v4"
 	"barbecue/api"
 	"barbecue/core"
@@ -13,6 +14,7 @@ func PostSlugEdit(ctx echo.Context) error {
 	slug := ctx.Param("slug")
 	title := ctx.FormValue("title")
 	description := ctx.FormValue("description")
+	progress := ctx.FormValue("progress")
 	tasks, err := api.GetBySlug(slug)
 	if err != nil {
 		core.Log.Debug("PostSlugEdit", err)
@@ -21,6 +23,11 @@ func PostSlugEdit(ctx echo.Context) error {
 	task := (*tasks)[0]
 	task.Title = title
 	task.Description = description
+	if len(progress) > 0 {
+		if p, err := strconv.ParseUint(progress, 10, 32); err == nil {
+			task.Progress = uint(p)
+		}
+	}
 	if _, err := api.Update(task) ; err != nil {
 		core.Log.Debug("PostSlugEdit", err)
 		return out.Err(http.StatusInternalServerError, "Database")

@@ -28,6 +28,12 @@
             {{ if .Task }}
                 <input type="text" name="title" placeholder="Title..." value="{{ .Task.Title }}" required/>
                 <textarea name="description" placeholder="Description...">{{ .Task.Description }}</textarea>
+                {{ if .Children }}
+                    {{ if eq (len .Children) 0 }}
+                        <label for="progress">Progress: <span id="progress-value">{{ .Task.Progress }}</span>%</label>
+                        <input type="range" id="progress" name="progress" min="0" max="100" value="{{ .Task.Progress }}" oninput="document.getElementById('progress-value').innerText = this.value" />
+                    {{ end }}
+                {{ end }}
             {{ else }}
                 <input type="text" name="title" placeholder="Title..." required/>
                 <textarea name="description" placeholder="Description..."></textarea>
